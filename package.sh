@@ -1,9 +1,6 @@
 #!/bin/bash
 
-file='dist/succcubbus.zip'
+date=$(date +%Y%m%d%H%M%S)
+file="../dist/succcubbus-$date.zip"
 
-if [ -f $file ]; then
-	rm $file
-fi
-
-cd src && 7z a "../$file" * && cd ..
+cd src && 7z a $file * && cd ..
