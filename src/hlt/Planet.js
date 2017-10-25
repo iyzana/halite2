@@ -102,8 +102,7 @@ class Planet extends Entity {
     }
 
     toString() {
-        return 'planet' + this._params.id;
-        return 'planet. ' + (this.ownerId ? 'owner id: ' + this.ownerId : 'no owner') + ': ' + JSON.stringify(this._params);
+        return 'p' + this._params.id;
     }
 }
 

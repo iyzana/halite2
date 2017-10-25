@@ -3,12 +3,15 @@ const log = require('../hlt/Log');
 const {spread, weightPlanets} = require('./Spread');
 const {attack} = require('./Attack');
 const ShipActions = require('./ShipActions');
+const {resetGrid} = require('./Navigation');
 
 Array.prototype.toString = function () {
     return "[" + this.join(", ") + "]";
 };
 
 function strategy(gameMap) {
+    resetGrid(gameMap);
+
     const planetWeights = weightPlanets(gameMap);
 
     const planetsOfInterest = gameMap.planets.filter(p => p.isFree() || (p.isOwnedByMe() && p.hasDockingSpot()));

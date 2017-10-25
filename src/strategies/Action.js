@@ -19,6 +19,14 @@ class Action {
             return navigateAttack(ship, this.data);
         }
     }
+
+    toString() {
+        if (this.type === "attack") {
+            return this.type + '->[' + Math.floor(this.data.x) + "," + Math.floor(this.data.y) + "]";
+        }
+
+        return this.type + '->' + this.data;
+    }
 }
 
 function navigateAttack(ship, attackPos) {

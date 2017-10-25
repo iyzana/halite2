@@ -143,8 +143,7 @@ class Ship extends Entity {
     }
 
     toString() {
-        return 'ship' + this._params.id;
-        // return 'ship. owner id: ' + this.ownerId + ': ' + JSON.stringify(this._params);
+        return 's' + this._params.id;
     }
 }
 

@@ -1,4 +1,4 @@
 const Game = require('./hlt/Game');
-const {strategy} = require('./strategies/MyStrategy');
+const {strategy} = require('./strategies/Strategy');
 
 Game.start('succcubbus', strategy);
