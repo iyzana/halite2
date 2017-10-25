@@ -32,7 +32,6 @@ function navigateAttack(ship, attackPos) {
     })
 }
 
-
 function navigatePlanet(ship, planet) {
     const distance = Geometry.distance(ship, planet);
     const speed = distance < 30 ? constants.MAX_SPEED / 2 : constants.MAX_SPEED;

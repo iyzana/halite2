@@ -13,7 +13,7 @@ function attack(ship, gameMap) {
 
     return gameMap.enemyShips
         .map(enemy => {
-            const position = getAttackPosition(gameMap, enemy);
+            const position = getAttackPosition(gameMap, ship, enemy);
             const planetCollision = gameMap.planets
                 .some(planet => Geometry.distance(planet, position) < planet.radius);
 
@@ -29,7 +29,7 @@ function getAttackScore(ship, enemy, attackPosition) {
     return distancePct * ease;
 }
 
-function getAttackPosition(gameMap, enemy) {
+function getAttackPosition(gameMap, ship, enemy) {
     let [x, y] = gameMap.enemyShips
         .filter(e => Geometry.distance(enemy, e) < constants.WEAPON_RADIUS * 2)
         .map(e => [e.x - enemy.x, e.y - enemy.y])
@@ -37,11 +37,12 @@ function getAttackPosition(gameMap, enemy) {
 
     const length = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
     if (length) {
-        const targetDistance = 4;
+        const targetDistance = 3;
         [x, y] = [x / length * targetDistance, y / length * targetDistance];
+        return {x: enemy.x - x, y: enemy.y - y};
     }
 
-    return {x: enemy.x - x, y: enemy.y - y};
+    return Geometry.reduceEnd(ship, enemy, 3);
 }
 
 module.exports = {attack};
