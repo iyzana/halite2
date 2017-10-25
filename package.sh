@@ -1,6 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 date=$(date +%Y%m%d%H%M%S)
-file="../dist/succcubbus-$date.zip"
+folder="dist/$date"
 
-cd src && 7z a $file * && cd ..
+cp -r src ${folder}
+cd ${folder}
+7z a "succcubbus.zip" *
