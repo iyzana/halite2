@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-./halite -d "240 160" "node src/MyBot.js" "node dist/20171025185456/MyBot.js"
+./halite -d "240 160" "node src/MyBot.js" "node src/MyBot.js"
 
 [[ -d replay ]] || mkdir replay
 mv replay-*.hlt replay
