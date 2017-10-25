@@ -6,6 +6,7 @@ const Action = require('./Action');
 
 let scaleTo;
 let maxDistance;
+let maxWeight;
 
 function spread(gameMap, planetsOfInterest, ship, planetWeights) {
     if (!maxDistance) {
@@ -21,8 +22,8 @@ function spread(gameMap, planetsOfInterest, ship, planetWeights) {
 
 function getPlanetScore(ship, planet, weight) {
     const distPct = 1 - Geometry.distance(ship, planet) / maxDistance;
-    const gain = weight / 25;
-    return distPct + gain;
+    const gain = weight / maxWeight;
+    return (distPct * 0.8 + gain * 0.2) * 3.5;
 }
 
 function weightPlanets(gameMap) {
@@ -37,6 +38,9 @@ function weightPlanets(gameMap) {
             .map(planetWeigher(planet))
             .filter(v => v > 0)
             .reduce((prev, cur) => prev + cur, 0);
+
+        if (!maxWeight || weight > maxWeight)
+            maxWeight = weight;
 
         return [planet, weight];
     }));

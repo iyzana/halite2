@@ -25,7 +25,7 @@ function attack(ship, gameMap) {
 
 function getAttackScore(ship, enemy, attackPosition) {
     const distancePct = 1 - Geometry.distance(ship, attackPosition) / maxDistance;
-    const ease = !enemy.isUndocked() ? 2 : 1;
+    const ease = enemy.isUndocked() ? 1 : 2;
     return distancePct * ease;
 }
 
