@@ -1,0 +1,9 @@
+# ide
+.idea/
+
+# logs
+*.log
+*.hlt
+
+# build
+dist/
