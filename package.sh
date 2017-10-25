@@ -6,3 +6,4 @@ folder="dist/$date"
 cp -r src ${folder}
 cd ${folder}
 7z a "succcubbus.zip" *
+sed -i "s/succcubbus/succcubbus-$date/" MyBot.js
