@@ -1,0 +1,18 @@
+{
+  "name": "halite2",
+  "version": "1.0.0",
+  "description": "A Halite2 Bot",
+  "main": "src/MyBot.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@bitbucket.org/succcubbus/halite2.git"
+  },
+  "author": "",
+  "homepage": "https://bitbucket.org/succcubbus/halite2#readme",
+  "dependencies": {
+    "@tyriar/fibonacci-heap": "^1.0.10"
+  }
+}
