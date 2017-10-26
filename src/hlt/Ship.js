@@ -143,7 +143,7 @@ class Ship extends Entity {
     }
 
     toString() {
-        return 's' + this._params.id;
+        return 's' + this._params.id + "[" + Math.floor(this.x) + "," + Math.floor(this.y) + "]";
     }
 }
 

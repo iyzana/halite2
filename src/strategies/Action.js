@@ -1,5 +1,7 @@
 const constants = require('../hlt/Constants');
 const Geometry = require('../hlt/Geometry');
+const {findPath} = require('./LineNavigation');
+const log = require('../hlt/Log');
 
 class Action {
     constructor(score, type, data) {
@@ -8,16 +10,27 @@ class Action {
         this.data = data;
     }
 
-    execute(ship) {
+    execute(gameMap, ship) {
         if (this.type === "spread") {
             if (ship.canDock(this.data)) {
                 return ship.dock(this.data);
             } else {
-                return navigatePlanet(ship, this.data);
+                return this.navigatePlanet(gameMap, ship);
             }
         } else if (this.type === "attack") {
-            return navigateAttack(ship, this.data);
+            return this.navigateAttack(gameMap, ship);
         }
+    }
+
+    navigatePlanet(gameMap, ship) {
+        const to = Geometry.reduceEnd(ship, this.data, this.data.radius + constants.DOCK_RADIUS);
+        const {speed, angle} = findPath(gameMap, ship, to);
+        return ship.thrust(speed, angle);
+    }
+
+    navigateAttack(gameMap, ship) {
+        const {speed, angle} = findPath(gameMap, ship, this.data);
+        return ship.thrust(speed, angle);
     }
 
     toString() {
@@ -27,29 +40,6 @@ class Action {
 
         return this.type + '->' + this.data;
     }
-}
-
-function navigateAttack(ship, attackPos) {
-    const distance = Geometry.distance(ship, attackPos);
-    const speed = distance < 30 ? constants.MAX_SPEED / 2 : constants.MAX_SPEED;
-    return ship.navigate({
-        target: attackPos,
-        speed,
-        avoidObstacles: true,
-        ignoreShips: false
-    })
-}
-
-function navigatePlanet(ship, planet) {
-    const distance = Geometry.distance(ship, planet);
-    const speed = distance < 30 ? constants.MAX_SPEED / 2 : constants.MAX_SPEED;
-    return ship.navigate({
-        target: planet,
-        keepDistanceToTarget: planet.radius + constants.DOCK_RADIUS,
-        speed,
-        avoidObstacles: true,
-        ignoreShips: false
-    });
 }
 
 module.exports = Action;

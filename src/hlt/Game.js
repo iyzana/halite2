@@ -14,7 +14,7 @@ class Game {
     static start(botName, strategy) {
         Networking.writeLine(botName);
 
-        let turnNumber = 1;
+        let turnNumber = -1;
         Networking.readNLines(2, lines => {
             const parsedGameMeta = parseGameMeta(lines);
 

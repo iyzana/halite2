@@ -1,5 +1,6 @@
 const log = require('../hlt/Log');
 
+const Geometry = require('../hlt/Geometry');
 const {spread, weightPlanets} = require('./Spread');
 const {attack} = require('./Attack');
 const ShipActions = require('./ShipActions');
@@ -8,7 +9,18 @@ Array.prototype.toString = function () {
     return "[" + this.join(", ") + "]";
 };
 
+const lastThrustActions = new Map();
+
 function strategy(gameMap) {
+    gameMap.myShips
+        .filter(s => lastThrustActions.has(s.id))
+        .forEach(ship => {
+            ship._params.x = ship.x + lastThrustActions.get(ship.id).x;
+            ship._params.y = ship.y + lastThrustActions.get(ship.id).y;
+        });
+
+    lastThrustActions.clear();
+
     const planetWeights = weightPlanets(gameMap);
 
     const planetsOfInterest = gameMap.planets.filter(p => p.isFree() || (p.isOwnedByMe() && p.hasDockingSpot()));
@@ -46,7 +58,17 @@ function strategy(gameMap) {
 
             log.log(ship + ': ' + shipActions.actions.slice(0, Math.min(shipActions.actions.length, 3)));
 
-            return action.execute(ship);
+            let actionString = action.execute(gameMap, ship);
+
+            const parts = actionString.split(' ');
+            if (parts[0] === 't') {
+                lastThrustActions.set(ship.id, {
+                    x: parts[2] * Math.cos(Geometry.toRad(parts[3])),
+                    y: parts[2] * Math.sin(Geometry.toRad(parts[3])),
+                })
+            }
+
+            return actionString;
         });
 }
 
