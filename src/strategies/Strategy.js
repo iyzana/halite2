@@ -3,15 +3,12 @@ const log = require('../hlt/Log');
 const {spread, weightPlanets} = require('./Spread');
 const {attack} = require('./Attack');
 const ShipActions = require('./ShipActions');
-const {resetGrid, pathFind} = require('./Navigation');
 
 Array.prototype.toString = function () {
     return "[" + this.join(", ") + "]";
 };
 
 function strategy(gameMap) {
-    resetGrid(gameMap);
-
     const planetWeights = weightPlanets(gameMap);
 
     const planetsOfInterest = gameMap.planets.filter(p => p.isFree() || (p.isOwnedByMe() && p.hasDockingSpot()));
@@ -44,12 +41,6 @@ function strategy(gameMap) {
 
     return possibleActions
         .map(shipActions => {
-            const time1 = Date.now();
-            resetGrid(gameMap);
-            const time2 = Date.now();
-            pathFind({x: 0, y: 0}, {x: gameMap.width - 1, y: gameMap.height - 1});
-            log.log('reset: ' + (time2 - time1) + ' pathFind: ' + (Date.now() - time2));
-
             const ship = shipActions.ship;
             const action = shipActions.actions[0];
 
