@@ -10,10 +10,10 @@ class Action {
         this.data = data;
     }
 
-    execute(gameMap, ship) {
+    getAction(gameMap, ship) {
         if (this.type === "spread") {
             if (ship.canDock(this.data)) {
-                return ship.dock(this.data);
+                return ["dock", this.data];
             } else {
                 return this.navigatePlanet(gameMap, ship);
             }
@@ -25,12 +25,12 @@ class Action {
     navigatePlanet(gameMap, ship) {
         const to = Geometry.reduceEnd(ship, this.data, this.data.radius + constants.DOCK_RADIUS);
         const {speed, angle} = findPath(gameMap, ship, to);
-        return ship.thrust(speed, angle);
+        return ["thrust", speed, angle];
     }
 
     navigateAttack(gameMap, ship) {
         const {speed, angle} = findPath(gameMap, ship, this.data);
-        return ship.thrust(speed, angle);
+        return ["thrust", speed, angle];
     }
 
     toString() {

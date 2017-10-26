@@ -1,6 +1,7 @@
 const log = require('../hlt/Log');
 
 const Geometry = require('../hlt/Geometry');
+const constants = require('../hlt/Constants');
 const {spread, weightPlanets} = require('./Spread');
 const {attack} = require('./Attack');
 const ShipActions = require('./ShipActions');
@@ -51,25 +52,51 @@ function strategy(gameMap) {
             .forEach(tuple => tuple[1].actions.splice(tuple[0], 1));
     });
 
-    return possibleActions
+    const moves = possibleActions
         .map(shipActions => {
             const ship = shipActions.ship;
             const action = shipActions.actions[0];
 
             log.log(ship + ': ' + shipActions.actions.slice(0, Math.min(shipActions.actions.length, 3)));
 
-            let actionString = action.execute(gameMap, ship);
-
-            const parts = actionString.split(' ');
-            if (parts[0] === 't') {
-                lastThrustActions.set(ship.id, {
-                    x: parts[2] * Math.cos(Geometry.toRad(parts[3])),
-                    y: parts[2] * Math.sin(Geometry.toRad(parts[3])),
-                })
-            }
-
-            return actionString;
+            return [ship, ...action.getAction(gameMap, ship)];
         });
+
+    const thrusts = moves.filter(([ship, move]) => move === "thrust");
+    thrusts.forEach(thrust1 => {
+        const [ship1, move1, speed1, angle1] = thrust1;
+
+        const similarThrusts = thrusts.filter(([ship2, move2]) => Geometry.distance(ship1, ship2) <= constants.MAX_SPEED)
+            .filter(([ship2, move2, speed2, angle2]) => {
+                const betweenShipsAngle = Geometry.angleInDegree(ship1, ship2);
+                const thrustShipAngle = Geometry.angleBetween(angle1, betweenShipsAngle);
+                const thrustAngle = Geometry.angleBetween(angle1, angle2);
+                // check if thrustShipAngle and thrustAngle have the same sign
+                return Math.abs(thrustAngle) < 5 && thrustShipAngle * thrustAngle > 0;
+            });
+
+        similarThrusts.push(thrust1);
+        const avgAngle = similarThrusts
+            .map(thrust => thrust[3])
+            .reduce((prev, cur) => prev + cur, 0) / similarThrusts.length;
+
+        similarThrusts.forEach(thrust => thrust[3] = avgAngle);
+    });
+
+    return moves.map(([ship, move, data1, data2]) => {
+        log.log([ship, move, data1, data2]);
+        switch (move) {
+            case "thrust":
+                lastThrustActions.set(ship.id, {
+                    x: Math.floor(data1) * Math.cos(Geometry.toRad(Math.floor(data2))),
+                    y: Math.floor(data1) * Math.sin(Geometry.toRad(Math.floor(data2))),
+                });
+
+                return ship.thrust(data1, data2);
+            case "dock":
+                return ship.dock(data1);
+        }
+    });
 }
 
 module.exports = {strategy};

@@ -36,6 +36,14 @@ class Geometry {
         return Geometry.toDegree(this.angleInRad(start, end));
     }
 
+    static angleBetween(angle1, angle2) {
+        return Geometry.mod(angle2 - angle1 + 180, 360) - 180;
+    }
+
+    static mod(a, n) {
+        return a - Math.floor(a/n) * n
+    }
+
     /**
      * given start and end positions, adjust end position by rotating line by specified degree
      * @param {object} start object with {x, y} properties

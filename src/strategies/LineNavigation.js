@@ -8,12 +8,12 @@ function findPath(gameMap, ship, to, ignore, depth) {
     if (depth >= 10)
         return undefined;
 
-    const stationaryShips = gameMap.allShips
+    const allShips = gameMap.allShips
         .filter(s => s.id !== ship.id && (!ignore || s.id !== ignore.id));
 
     log.log("path from " + ship + " to [" + Math.floor(to.x) + "," + Math.floor(to.y) + "]");
 
-    let obstacles = obstaclesBetween(gameMap.planets, ship, to).concat(obstaclesBetween(stationaryShips, ship, to));
+    let obstacles = obstaclesBetween(gameMap.planets, ship, to).concat(obstaclesBetween(allShips, ship, to));
 
     if (obstacles.length) {
         log.log(obstacles.length + " obstacles");
@@ -40,7 +40,7 @@ function findPath(gameMap, ship, to, ignore, depth) {
         const distanceA = Geometry.distance(ship, escapePointA);
         let distanceB = Geometry.distance(ship, escapePointB);
 
-        let escapePoint = Geometry.reduceEnd(ship, distanceA < distanceB ? escapePointA : escapePointB, -20);
+        let escapePoint = Geometry.reduceEnd(ship, distanceA < distanceB ? escapePointA : escapePointB, -10);
 
         log.log("escapePointA: " + JSON.stringify(escapePointA));
         log.log("escapePointB: " + JSON.stringify(escapePointB));
@@ -49,7 +49,7 @@ function findPath(gameMap, ship, to, ignore, depth) {
         const result = findPath(gameMap, ship, escapePoint, ignore, depth + 1);
 
         if (!result) {
-            let escapePoint = Geometry.reduceEnd(ship, distanceA >= distanceB ? escapePointA : escapePointB, -20);
+            let escapePoint = Geometry.reduceEnd(ship, distanceA >= distanceB ? escapePointA : escapePointB, -10);
             const result = findPath(gameMap, ship, escapePoint, ignore, depth + 1);
 
             if (!result && depth === 0)
