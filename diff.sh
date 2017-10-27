@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 
-release=$1
-if [ -z "$release" ]; then
-    unset -v latest
-    for file in dist/*; do
-        [[ -d ${file} && ${file} -nt ${latest} ]] && latest=${file};
-    done
+if [ -z "$1" ]; then
+    number=1
+    folder="dist/"
 
-    release=${latest};
+    while [ -d "${folder}v$number" ]; do
+        number=$(( number + 1 ))
+    done
+    number=$(( number - 1 ))
+
+    release="${folder}v$number";
+else
+    release="dist/$1"
 fi
 
 echo "diffing with $release"

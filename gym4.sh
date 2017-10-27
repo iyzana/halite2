@@ -22,9 +22,9 @@ else
     release="dist/$2"
 fi
 
-echo "training #0 $src against #1 $release"
+echo "training #0 $src against #1-3 $release"
 
-python ${client} gym -r "node '$src/MyBot.js'" -r "node '$release/MyBot.js'" -b ./halite -W 240 -H 160
+python ${client} gym -r "node '$src/MyBot.js'" -r "node '$release/MyBot.js'" -r "node '$release/MyBot.js'" -r "node '$release/MyBot.js'" -b ./halite -W 240 -H 160
 
 [[ -d replay ]] || mkdir replay
 mv replay-*.hlt replay

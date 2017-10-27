@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
 
-date=$(date +%Y%m%d%H%M%S)
-folder="dist/$date"
+number=1
+folder="dist/"
+
+while [ -d "${folder}v$number" ]; do
+    number=$(( number + 1 ))
+done
+
+folder="${folder}v$number"
 
 cp -r src ${folder}
 cd ${folder}
-7z a "succcubbus.zip" *
-sed -i "s/succcubbus/succcubbus-$date/" MyBot.js
+7z a "succcubbus-v$number.zip" *
+sed -i "s/succcubbus/succcubbus-v$number/" MyBot.js
