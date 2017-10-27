@@ -14,16 +14,17 @@ function spread(gameMap, planetsOfInterest, ship, planetWeights) {
     }
 
     return planetsOfInterest.map(planet => {
-        const score = getPlanetScore(ship, planet, planetWeights.get(planet));
+        const score = getPlanetScore(gameMap, ship, planet, planetWeights.get(planet));
 
         return new Action(score, "spread", planet);
     });
 }
 
-function getPlanetScore(ship, planet, weight) {
+function getPlanetScore(gameMap, ship, planet, weight) {
+    const shipPct = (gameMap.myShips.length / gameMap.allShips.length) * 2.5; // from 1 2/3 1/2 1/4 0
     const distPct = 1 - Geometry.distance(ship, planet) / maxDistance;
     const gain = weight / maxWeight;
-    return (distPct * 0.8 + gain * 0.2) * 2;
+    return (distPct * 0.8 + gain * 0.2) * (3.25 - shipPct); // from 1.5 to 3 (window 1.5)
 }
 
 function weightPlanets(gameMap) {
