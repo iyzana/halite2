@@ -81,6 +81,22 @@ function strategy(gameMap) {
             .reduce((prev, cur) => prev + cur, 0) / similarThrusts.length;
 
         similarThrusts.forEach(thrust => thrust[3] = avgAngle);
+
+        thrusts
+            .filter(([ship2]) => ship1 !== ship2)
+            .filter(([ship2, move2]) => Geometry.distance(ship1, ship2) <= constants.MAX_SPEED * 2)
+            .filter(([ship2, move2, speed2, angle2]) => {
+                const newX1 = ship1.x + Math.floor(speed1) * Math.cos(Geometry.toRad(Math.floor(angle1)));
+                const newY1 = ship1.y + Math.floor(speed1) * Math.sin(Geometry.toRad(Math.floor(angle1)));
+                const newX2 = ship2.x + Math.floor(speed2) * Math.cos(Geometry.toRad(Math.floor(angle2)));
+                const newY2 = ship2.y + Math.floor(speed2) * Math.sin(Geometry.toRad(Math.floor(angle2)));
+
+
+                return Geometry.distance({x: newX1, y: newY1}, {x: newX2, y:newY2}) < constants.SHIP_RADIUS;
+            })
+            .forEach(thrust => {
+                thrust[2] = Math.max(0, thrust[2] - 3.5);
+            });
     });
 
     return moves.map(([ship, move, data1, data2]) => {
