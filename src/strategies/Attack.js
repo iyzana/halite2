@@ -30,7 +30,7 @@ function getAttackScore(ship, enemy, attackPosition, gameMap) {
     let unprotectedPlanet = 1;
     if(!enemy.isUndocked()) {
         const [_, planet] = gameMap.planets.reduce((acc, p) => {
-            const dist = Geometry.distance(ship, p);
+            const dist = Geometry.distance(enemy, p);
                 return dist < acc[0] ? [dist, p] : acc;
         }, [Infinity, null]);
 
