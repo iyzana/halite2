@@ -27,7 +27,7 @@ function getAttackScore(ship, enemy, attackPosition, gameMap) {
     const distance = Geometry.distance(ship, attackPosition);
     const distancePct = 1 - distance / maxDistance;
 
-    let unprotectedPlanet = 1;
+    let unprotectedPlanet = -0.25;
     if(!enemy.isUndocked()) {
         const [_, planet] = gameMap.planets.reduce((acc, p) => {
             const dist = Geometry.distance(enemy, p);
@@ -38,10 +38,10 @@ function getAttackScore(ship, enemy, attackPosition, gameMap) {
         const turnsTillNewShip = (72 - planet.currentProduction)/(planet.numberOfDockedShips*constants.BASE_PRODUCTIVITY);
 
         if(turnsTillReach <= turnsTillNewShip)
-            unprotectedPlanet = 2;
+            unprotectedPlanet = 0.25;
     }
     const ease = enemy.isUndocked() ? 1 : 2;
-    return distancePct * ease * unprotectedPlanet;
+    return distancePct * ease + unprotectedPlanet;
 }
 
 function getAttackPosition(gameMap, ship, enemy) {
