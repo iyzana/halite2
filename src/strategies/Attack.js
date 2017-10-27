@@ -17,16 +17,31 @@ function attack(ship, gameMap) {
             const planetCollision = gameMap.planets
                 .some(planet => Geometry.distance(planet, position) < planet.radius);
 
-            const score = planetCollision ? -1 : getAttackScore(ship, enemy, position);
+            const score = planetCollision ? -1 : getAttackScore(ship, enemy, position, gameMap);
 
             return new Action(score, "attack", position);
         });
 }
 
-function getAttackScore(ship, enemy, attackPosition) {
-    const distancePct = 1 - Geometry.distance(ship, attackPosition) / maxDistance;
+function getAttackScore(ship, enemy, attackPosition, gameMap) {
+    const distance = Geometry.distance(ship, attackPosition);
+    const distancePct = 1 - distance / maxDistance;
+
+    let unprotectedPlanet = 1;
+    if(!enemy.isUndocked()) {
+        const [_, planet] = gameMap.planets.reduce((acc, p) => {
+            const dist = Geometry.distance(ship, p);
+                return dist < acc[0] ? [dist, p] : acc;
+        }, [Infinity, null]);
+
+        const turnsTillReach = distance/constants.MAX_SPEED;
+        const turnsTillNewShip = (72 - planet.currentProduction)/(planet.numberOfDockedShips*constants.BASE_PRODUCTIVITY);
+
+        if(turnsTillReach <= turnsTillNewShip)
+            unprotectedPlanet = 2;
+    }
     const ease = enemy.isUndocked() ? 1 : 2;
-    return distancePct * ease;
+    return distancePct * ease * unprotectedPlanet;
 }
 
 function getAttackPosition(gameMap, ship, enemy) {
