@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-if [ -z "$1" ]; then
+if [[ -z "$1" ]]; then
     number=1
     folder="dist/"
 
@@ -10,6 +10,8 @@ if [ -z "$1" ]; then
     number=$(( number - 1 ))
 
     release="${folder}v$number";
+elif [[ "$1" = "src" ]]; then
+    release="src"
 else
     release="dist/$1"
 fi

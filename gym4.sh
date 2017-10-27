@@ -2,13 +2,15 @@
 
 client="client/client.py"
 
-if [ -z "$1" ]; then
+if [[ -z "$1" ]]; then
+    src="src"
+elif [[ "$1" = "src" ]]; then
     src="src"
 else
     src="dist/$1"
 fi
 
-if [ -z "$2" ]; then
+if [[ -z "$2" ]]; then
     number=1
     folder="dist/"
 
@@ -18,6 +20,8 @@ if [ -z "$2" ]; then
     number=$(( number - 1 ))
 
     release="${folder}v$number";
+elif [[ "$2" = "src" ]]; then
+    release="src"
 else
     release="dist/$2"
 fi

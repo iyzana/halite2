@@ -3,7 +3,7 @@
 number=1
 folder="dist/"
 
-while [ -d "${folder}v$number" ]; do
+while [[ -d "${folder}v$number" ]]; do
     number=$(( number + 1 ))
 done
 
