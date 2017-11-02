@@ -21,10 +21,10 @@ function spread(gameMap, planetsOfInterest, ship, planetWeights) {
 }
 
 function getPlanetScore(gameMap, ship, planet, weight) {
-    const shipPct = (gameMap.myShips.length / gameMap.allShips.length) * 1.8; // from 1 2/3 1/2 1/4 0
+    const shipPct = gameMap.myShips.length / gameMap.allShips.length;
     const distPct = 1 - Geometry.distance(ship, planet) / maxDistance;
-    const gain = weight / maxWeight;
-    return (distPct * 0.8 + gain * 0.2) * (3 - shipPct);
+    const gain = shipPct < 0.33 ? 1 - weight / maxWeight : weight / maxWeight;
+    return (distPct * 0.8 + gain * 0.2) * (3 - shipPct * 1.8);
 }
 
 function weightPlanets(gameMap) {
