@@ -92,7 +92,7 @@ function strategy(gameMap) {
                 const newY2 = ship2.y + Math.floor(speed2) * Math.sin(Geometry.toRad(Math.floor(angle2)));
 
 
-                return Geometry.distance({x: newX1, y: newY1}, {x: newX2, y:newY2}) < constants.SHIP_RADIUS;
+                return Geometry.distance({x: newX1, y: newY1}, {x: newX2, y:newY2}) < constants.SHIP_RADIUS * 3;
             })
             .forEach(thrust => {
                 thrust[2] = Math.max(0, thrust[2] - 3.5);
