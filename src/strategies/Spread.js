@@ -2,7 +2,7 @@ const constants = require('../hlt/Constants');
 const Geometry = require('../hlt/Geometry');
 const log = require('../hlt/Log');
 
-const Action = require('./Action');
+const Intent = require('./Intent');
 
 let scaleTo;
 let maxDistance;
@@ -16,7 +16,7 @@ function spread(gameMap, planetsOfInterest, ship, planetWeights) {
     return planetsOfInterest.map(planet => {
         const score = getPlanetScore(gameMap, ship, planet, planetWeights.get(planet));
 
-        return new Action(score, "spread", planet);
+        return new Intent(score, "spread", planet);
     });
 }
 

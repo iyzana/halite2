@@ -2,7 +2,7 @@ const constants = require('../hlt/Constants');
 const Geometry = require('../hlt/Geometry');
 const log = require('../hlt/Log');
 
-const Action = require('./Action');
+const Intent = require('./Intent');
 
 let maxDistance;
 
@@ -19,7 +19,7 @@ function attack(ship, gameMap) {
 
             const score = planetCollision ? -1 : getAttackScore(ship, enemy, position, gameMap);
 
-            return new Action(score, "attack", position);
+            return new Intent(score, "attack", position);
         });
 }
 

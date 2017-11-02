@@ -3,7 +3,7 @@ const Geometry = require('../hlt/Geometry');
 const {findPath} = require('./LineNavigation');
 const log = require('../hlt/Log');
 
-class Action {
+class Intent {
     constructor(score, type, data) {
         this.score = score;
         this.type = type;
@@ -42,4 +42,4 @@ class Action {
     }
 }
 
-module.exports = Action;
+module.exports = Intent;
