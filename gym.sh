@@ -28,7 +28,7 @@ fi
 
 echo "training #0 $src against #1 $release"
 
-python3 ${client} gym -r "node 'src/MyBot.js'" -r "node '$release/MyBot.js'" -b ./halite -W 240 -H 160
+python3 ${client} gym -r "node 'src/MyBot.js'" -r "node '$release/MyBot.js'" -b ./halite -W 240 -H 160 -i 1000
 
 
 [[ -d replay ]] || mkdir replay

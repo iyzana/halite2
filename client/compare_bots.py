@@ -1,5 +1,7 @@
 import subprocess
+import math
 import re
+from random import shuffle
 
 _WINNING_RANK_STRING = "rank #1"
 _SPACE_DELIMITER = ' '
@@ -15,6 +17,18 @@ def _determine_winner(game_result):
     return next(line for line in game_result.splitlines()
                 if re.compile(_WINNING_RANK_STRING).search(line)).split(_SPACE_DELIMITER)[_BOT_ID_POSITION]
 
+
+def _statistical_significance(games, bot1, bot2):
+    if games < 30:
+        return False
+
+    pct1 = bot1 / games * 100
+    pct2 = bot2 / games * 100
+
+    error = 3 * math.sqrt((pct1 * (100 - pct1) / games) + (pct2 * (100 - pct2) / games))
+    difference = abs(pct1 - pct2)
+
+    return error < difference
 
 def _play_game(binary, map_width, map_height, bot_commands):
     """
@@ -49,5 +63,13 @@ def play_games(binary, map_width, map_height, bot_commands, number_of_runs):
         match_output = _play_game(binary, map_width, map_height, bot_commands)
         winner = _determine_winner(match_output)
         result[winner] = result.setdefault(winner, 0) + 1
-        print("Finished {} runs.".format(current_run + 1))
-        print("Win Ratio: {}".format(result))
+
+        significant = False
+        for index1, bot1 in enumerate(result.values()):
+            for index2, bot2 in enumerate(result.values()):
+                if index1 != index2:
+                    if _statistical_significance(current_run + 1, bot1, bot2):
+                        significant = True
+                        break
+
+        print("run {}: wins{}{}".format(current_run + 1, result, " significant!" if significant else ""))
