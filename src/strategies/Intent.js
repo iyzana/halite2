@@ -34,11 +34,13 @@ class Intent {
     }
 
     toString() {
+        const roundedScore = (Math.round(this.score * 100) / 100);
+
         if (this.type === "attack") {
-            return this.type + '->[' + Math.floor(this.data.x) + "," + Math.floor(this.data.y) + "]";
+            return roundedScore + "#" + this.type + '->[' + Math.floor(this.data.x) + "," + Math.floor(this.data.y) + "]";
         }
 
-        return this.type + '->' + this.data;
+        return roundedScore + "#" + this.type + '->' + this.data;
     }
 }
 

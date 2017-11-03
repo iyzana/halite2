@@ -46,13 +46,16 @@ function strategy(gameMap) {
             .filter(tuple => tuple[0] !== -1);
         candidateShips.sort((a, b) => b[1].intents[b[0]].score - a[1].intents[a[0]].score);
 
-        // remove go to planet intent from other ships
+        // remove planet intent from other ships
         candidateShips
             .slice(planet.freeDockingSpots)
             .forEach(tuple => tuple[1].intents.splice(tuple[0], 1));
     });
 
-    const moves = possibleIntents
+    // actually makes stuff slightly worse, needs improvement
+    // distributeAttacks(gameMap, possibleIntents);
+
+    const actions = possibleIntents
         .map(shipIntents => {
             const ship = shipIntents.ship;
             const intent = shipIntents.intents[0];
@@ -62,14 +65,14 @@ function strategy(gameMap) {
             return [ship, ...intent.getAction(gameMap, ship)];
         });
 
-    const thrusts = moves.filter(([ship, move]) => move === "thrust");
+    const thrusts = actions.filter(([ship, move]) => move === "thrust");
     thrusts.forEach(current => {
         alignSimilarAngles(current, thrusts);
 
         resolveDestinationConflicts(current, thrusts);
     });
 
-    return moves.map(([ship, move, data1, data2]) => {
+    return actions.map(([ship, move, data1, data2]) => {
         log.log([ship, move, data1, data2]);
         switch (move) {
             case "thrust":
@@ -79,6 +82,41 @@ function strategy(gameMap) {
             case "dock":
                 return ship.dock(data1);
         }
+    });
+}
+
+function distributeAttacks(gameMap, possibleIntents) {
+    // loose hitmap
+    const w = Math.ceil(gameMap.width / 5.0);
+    const h = Math.ceil(gameMap.height / 5.0);
+    const grid = new Array(w);
+    for (let x = 0; x < w; x++) {
+        grid[x] = new Array(h);
+        for (let y = 0; y < h; y++) {
+            grid[x][y] = [];
+        }
+    }
+
+    possibleIntents.forEach(shipIntent => {
+        shipIntent.intents
+            .filter(intent => intent.type === "attack")
+            .forEach(intent => {
+                grid[Math.trunc(intent.data.x / 5.0)][Math.trunc(intent.data.y / 5.0)].push([shipIntent.ship, intent]);
+            })
+    });
+
+    for (let x = 0; x < w; x++) {
+        for (let y = 0; y < h; y++) {
+            grid[x][y].sort((a, b) => Geometry.distance(a[0], a[1].data) - Geometry.distance(b[0], b[1].data));
+
+            grid[x][y]
+                .slice(2)
+                .forEach(([ship, intent]) => intent.score -= .5);
+        }
+    }
+
+    possibleIntents.forEach(shipIntent => {
+        shipIntent.intents.sort((a, b) => b.score - a.score);
     });
 }
 
