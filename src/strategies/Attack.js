@@ -1,5 +1,6 @@
 const constants = require('../hlt/Constants');
 const Geometry = require('../hlt/Geometry');
+const Simulation = require('./Simulation');
 const log = require('../hlt/Log');
 
 const Intent = require('./Intent');
@@ -28,16 +29,13 @@ function getAttackScore(ship, enemy, attackPosition, gameMap) {
     const distancePct = 1 - distance / maxDistance;
 
     let unprotectedPlanet = -0.25;
-    if(!enemy.isUndocked()) {
-        const [_, planet] = gameMap.planets.reduce((acc, p) => {
-            const dist = Geometry.distance(enemy, p);
-                return dist < acc[0] ? [dist, p] : acc;
-        }, [Infinity, null]);
+    if (!enemy.isUndocked()) {
+        const planet = Simulation.nearestEntity(gameMap.planets, enemy);
 
-        const turnsTillReach = distance/constants.MAX_SPEED;
-        const turnsTillNewShip = (72 - planet.currentProduction)/(planet.numberOfDockedShips*constants.BASE_PRODUCTIVITY);
+        const turnsTillReach = distance / constants.MAX_SPEED;
+        const turnsTillNewShip = Simulation.turnsTillNextShip(planet);
 
-        if(turnsTillReach <= turnsTillNewShip)
+        if (turnsTillReach <= turnsTillNewShip)
             unprotectedPlanet = 0.25;
     }
     const ease = enemy.isUndocked() ? 1 : 2;

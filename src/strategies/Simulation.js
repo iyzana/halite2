@@ -1,4 +1,5 @@
 const Geometry = require('../hlt/Geometry');
+const constants = require('../hlt/Constants');
 
 class Simulation {
     static toVector(speed, angle) {
@@ -15,6 +16,19 @@ class Simulation {
             x: start.x + speedVector.x,
             y: start.y + speedVector.y
         }
+    }
+
+    static nearestEntity(entities, start) {
+        const [_, entity] = entities.reduce((acc, entity) => {
+            const dist = Geometry.distance(start, entity);
+            return dist < acc[0] ? [dist, entity] : acc;
+        }, [Infinity, null]);
+
+        return entity;
+    }
+
+    static turnsTillNextShip(planet) {
+        return (72 - planet.currentProduction) / (planet.numberOfDockedShips * constants.BASE_PRODUCTIVITY);
     }
 }
 
