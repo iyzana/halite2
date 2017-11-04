@@ -1,5 +1,9 @@
 # attacking
 - group up before fighting if possible
+- avoid undocked enemies
+
+# defending
+- block path to docked ships
 
 # spreading
 - change spread for 4-maps so it does not inverse gain,
