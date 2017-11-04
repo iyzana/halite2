@@ -27,6 +27,13 @@ function getPlanetScore(gameMap, ship, planet, weight) {
     return (distPct * 0.8 + gain * 0.2) * (3 - shipPct * 1.8);
 }
 
+/**
+ * assigns a worth to every planet based on the docking spots
+ * and the docking spots of planets in close proximity
+ *
+ * @param gameMap The map
+ * @returns {Map} map from planet to weight
+ */
 function weightPlanets(gameMap) {
     if (!scaleTo) {
         scaleTo = Math.sqrt(Math.floor(gameMap.width * gameMap.height));

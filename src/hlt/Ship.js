@@ -92,6 +92,12 @@ class Ship extends Entity {
         return `u ${this.id}`;
     }
 
+    /**
+     * get command string for throst
+     * @param {number} magnitude speed
+     * @param {number} angle angle
+     * @returns {string} thrust command
+     */
     thrust(magnitude, angle) {
         return `t ${this.id} ${magnitude | 0} ${angle | 0}`;
     }

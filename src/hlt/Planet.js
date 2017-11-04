@@ -45,6 +45,10 @@ class Planet extends Entity {
             typeof this.ownerId === 'undefined';
     }
 
+    /**
+     * id of the player who currently owns this planet
+     * @returns {*|number}
+     */
     get ownerId() {
         return this._params.ownerId;
     }
@@ -57,6 +61,10 @@ class Planet extends Entity {
         return this._params.dockingSpots;
     }
 
+    /**
+     * number of ships than can still dock this planet
+     * @returns {number}
+     */
     get freeDockingSpots() {
         return this.dockingSpots - this.numberOfDockedShips;
     }
@@ -69,6 +77,11 @@ class Planet extends Entity {
         return this.numberOfDockedShips < this._params.dockingSpots;
     }
 
+    /**
+     * accumulated production in this planet, ships spawn at 72
+     *
+     * @returns {number}
+     */
     get currentProduction() {
         return this._params.currentProduction;
     }

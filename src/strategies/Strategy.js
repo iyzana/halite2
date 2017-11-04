@@ -11,8 +11,22 @@ Array.prototype.toString = function () {
     return "[" + this.join(", ") + "]";
 };
 
+/**
+ * Map from ship id to the movement vector it applied last tick.
+ * This is required, because thrusts only reflect in positional change
+ * one tick after they were actually applied.
+ * Without this correctional data processing would happen on last ticks positions.
+ *
+ * @type {Map}
+ */
 const lastThrustActions = new Map();
 
+/**
+ * Find the actions best suited for the state of the map
+ *
+ * @param gameMap The gameMap to process
+ * @returns {Array} Array of action strings
+ */
 function strategy(gameMap) {
     gameMap.myShips
         .filter(s => lastThrustActions.has(s.id))
@@ -85,8 +99,15 @@ function strategy(gameMap) {
     });
 }
 
+/**
+ * Post-processes the intents so that the number of ships attacking
+ * a particular entity at once is minimized and the attacks are spread.
+ *
+ * @param gameMap The gameMap to process
+ * @param possibleIntents The list of intents to post-process
+ */
 function distributeAttacks(gameMap, possibleIntents) {
-    // loose hitmap
+    // create loose hitmap
     const w = Math.ceil(gameMap.width / 5.0);
     const h = Math.ceil(gameMap.height / 5.0);
     const grid = new Array(w);
@@ -97,6 +118,7 @@ function distributeAttacks(gameMap, possibleIntents) {
         }
     }
 
+    // map attack intents to grid positions
     possibleIntents.forEach(shipIntent => {
         shipIntent.intents
             .filter(intent => intent.type === "attack")
@@ -107,22 +129,33 @@ function distributeAttacks(gameMap, possibleIntents) {
 
     for (let x = 0; x < w; x++) {
         for (let y = 0; y < h; y++) {
+            // sort intents by distance ascending
             grid[x][y].sort((a, b) => Geometry.distance(a[0], a[1].data) - Geometry.distance(b[0], b[1].data));
 
+            // except for the first two, decrease intent score
             grid[x][y]
                 .slice(2)
                 .forEach(([ship, intent]) => intent.score -= .5);
         }
     }
 
+    // resort intents
     possibleIntents.forEach(shipIntent => {
         shipIntent.intents.sort((a, b) => b.score - a.score);
     });
 }
 
+/**
+ * Find all thrusts that have a similar angle, but would intersect with the current thrust.
+ * For these thrusts take the average angle and apply it to them.
+ *
+ * @param current Thrust intent to compare against
+ * @param thrusts All thrust intents
+ */
 function alignSimilarAngles(current, thrusts) {
     const ship1 = current[0];
 
+    // find all thrusts with similar angle
     const similarThrusts = thrusts.filter(([ship2, move2]) => Geometry.distance(ship1, ship2) <= constants.MAX_SPEED)
         .filter(([ship2, move2, speed2, angle2]) => {
             const betweenShipsAngle = Geometry.angleInDegree(ship1, ship2);
@@ -132,15 +165,24 @@ function alignSimilarAngles(current, thrusts) {
             return Math.abs(thrustAngle) < 5 && thrustShipAngle * thrustAngle >= 0;
         });
 
+    // calculate the average angle
     const avgDifference =
         similarThrusts
             .map(thrust => Geometry.angleBetween(current[3], thrust[3])) // make relative to current to avoid 1, 359 issue
             .reduce((prev, cur) => prev + cur, 0) / similarThrusts.length;
     const avgAngle = current[3] + avgDifference;
 
+    // apply it
     similarThrusts.forEach(thrust => thrust[3] = avgAngle);
 }
 
+/**
+ * Reduce the speed of all thrusts, that would, in the next tick, end up in the same
+ * location as the current thrust.
+ *
+ * @param current Thrust intent to compare against
+ * @param thrusts All thrust intents
+ */
 function resolveDestinationConflicts(current, thrusts) {
     const ship1 = current[0];
 

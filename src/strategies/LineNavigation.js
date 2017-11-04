@@ -2,6 +2,17 @@ const Geometry = require('../hlt/Geometry');
 const constants = require('../hlt/Constants');
 const log = require('../hlt/Log');
 
+/**
+ * finds a speed and angle suited for navigating from ship to destination.
+ * an ignored entity can provided if the collision with it should not be avoided.
+ *
+ * @param gameMap The map
+ * @param ship ship to navigate
+ * @param to location to go to
+ * @param ignore some entity to ignore while navigation
+ * @param depth search depth
+ * @returns {{speed: number, angle: number}}
+ */
 function findPath(gameMap, ship, to, ignore, depth) {
     if (!depth)
         depth = 0;

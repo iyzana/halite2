@@ -10,6 +10,13 @@ class Intent {
         this.data = data;
     }
 
+    /**
+     * get the action necessary to execute this intent
+     *
+     * @param gameMap The map
+     * @param ship The ship to execute it for
+     * @returns {[string, *, *]}
+     */
     getAction(gameMap, ship) {
         if (this.type === "spread") {
             if (ship.canDock(this.data)) {

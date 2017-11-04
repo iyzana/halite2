@@ -36,10 +36,24 @@ class Geometry {
         return Geometry.toDegree(this.angleInRad(start, end));
     }
 
+    /**
+     * angle in degrees between two angles
+     *
+     * @param {number} angle1 from angle in degrees
+     * @param {number} angle2 to angle in degrees
+     * @returns {number} angle between angles in degrees
+     */
     static angleBetween(angle1, angle2) {
         return Geometry.mod(angle2 - angle1 + 180, 360) - 180;
     }
 
+    /**
+     * Calculate remainder, but ignore sign
+     *
+     * @param a dividend
+     * @param n divisor
+     * @returns {number} positive remainder
+     */
     static mod(a, n) {
         return a - Math.floor(a/n) * n
     }
