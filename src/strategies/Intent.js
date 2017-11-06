@@ -1,5 +1,7 @@
 const constants = require('../hlt/Constants');
 const Geometry = require('../hlt/Geometry');
+const ActionThrust = require('./ActionThrust');
+const ActionDock = require('./ActionDock');
 const {findPath} = require('./LineNavigation');
 const log = require('../hlt/Log');
 
@@ -15,12 +17,12 @@ class Intent {
      *
      * @param gameMap The map
      * @param ship The ship to execute it for
-     * @returns {[string, *, *]}
+     * @returns {*}
      */
     getAction(gameMap, ship) {
         if (this.type === "spread") {
             if (ship.canDock(this.data)) {
-                return ["dock", this.data];
+                return new ActionDock(ship, this.data);
             } else {
                 return this.navigatePlanet(gameMap, ship);
             }
@@ -32,12 +34,12 @@ class Intent {
     navigatePlanet(gameMap, ship) {
         const to = Geometry.reduceEnd(ship, this.data, this.data.radius + constants.DOCK_RADIUS);
         const {speed, angle} = findPath(gameMap, ship, to);
-        return ["thrust", speed, angle];
+        return new ActionThrust(ship, speed, angle);
     }
 
     navigateAttack(gameMap, ship) {
         const {speed, angle} = findPath(gameMap, ship, this.data);
-        return ["thrust", speed, angle];
+        return new ActionThrust(ship, speed, angle);
     }
 
     toString() {

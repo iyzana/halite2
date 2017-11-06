@@ -6,6 +6,8 @@ const constants = require('../hlt/Constants');
 const {spread, weightPlanets} = require('./Spread');
 const {attack} = require('./Attack');
 const ShipIntents = require('./ShipIntents');
+const ActionThrust = require('./ActionThrust');
+const ActionDock = require('./ActionDock');
 
 Array.prototype.toString = function () {
     return "[" + this.join(", ") + "]";
@@ -76,27 +78,19 @@ function strategy(gameMap) {
 
             log.log(ship + ': ' + shipIntents.intents.slice(0, Math.min(shipIntents.intents.length, 3)));
 
-            return [ship, ...intent.getAction(gameMap, ship)];
+            return intent.getAction(gameMap, ship);
         });
 
-    const thrusts = actions.filter(([ship, move]) => move === "thrust");
+    const thrusts = actions.filter(action => action instanceof ActionThrust);
     thrusts.forEach(current => {
         alignSimilarAngles(current, thrusts);
 
         resolveDestinationConflicts(current, thrusts);
     });
 
-    return actions.map(([ship, move, data1, data2]) => {
-        log.log([ship, move, data1, data2]);
-        switch (move) {
-            case "thrust":
-                lastThrustActions.set(ship.id, Simulation.toVector(data1, data2));
+    thrusts.forEach(thrust => lastThrustActions.set(thrust.ship.id, Simulation.toVector(thrust.speed, thrust.angle)));
 
-                return ship.thrust(data1, data2);
-            case "dock":
-                return ship.dock(data1);
-        }
-    });
+    return actions.map(action => action.getCommand());
 }
 
 /**
@@ -153,14 +147,12 @@ function distributeAttacks(gameMap, possibleIntents) {
  * @param thrusts All thrust intents
  */
 function alignSimilarAngles(current, thrusts) {
-    const ship1 = current[0];
-
     // find all thrusts with similar angle
-    const similarThrusts = thrusts.filter(([ship2, move2]) => Geometry.distance(ship1, ship2) <= constants.MAX_SPEED)
-        .filter(([ship2, move2, speed2, angle2]) => {
-            const betweenShipsAngle = Geometry.angleInDegree(ship1, ship2);
-            const thrustShipAngle = Geometry.angleBetween(current[3], betweenShipsAngle);
-            const thrustAngle = Geometry.angleBetween(current[3], angle2);
+    const similarThrusts = thrusts.filter(thrust2 => Geometry.distance(current.ship, thrust2.ship) <= constants.MAX_SPEED)
+        .filter(thrust2 => {
+            const betweenShipsAngle = Geometry.angleInDegree(current.ship, thrust2.ship);
+            const thrustShipAngle = Geometry.angleBetween(current.angle, betweenShipsAngle);
+            const thrustAngle = Geometry.angleBetween(current.angle, thrust2.angle);
             // check if thrustShipAngle and thrustAngle have the same sign
             return Math.abs(thrustAngle) < 5 && thrustShipAngle * thrustAngle >= 0;
         });
@@ -168,12 +160,12 @@ function alignSimilarAngles(current, thrusts) {
     // calculate the average angle
     const avgDifference =
         similarThrusts
-            .map(thrust => Geometry.angleBetween(current[3], thrust[3])) // make relative to current to avoid 1, 359 issue
+            .map(thrust2 => Geometry.angleBetween(current.angle, thrust2.angle)) // make relative to current to avoid 1, 359 issue
             .reduce((prev, cur) => prev + cur, 0) / similarThrusts.length;
-    const avgAngle = current[3] + avgDifference;
+    const avgAngle = current.angle + avgDifference;
 
     // apply it
-    similarThrusts.forEach(thrust => thrust[3] = avgAngle);
+    similarThrusts.forEach(thrust => thrust.angle = avgAngle);
 }
 
 /**
@@ -184,18 +176,16 @@ function alignSimilarAngles(current, thrusts) {
  * @param thrusts All thrust intents
  */
 function resolveDestinationConflicts(current, thrusts) {
-    const ship1 = current[0];
-
     thrusts
-        .filter(([ship2]) => ship1 !== ship2)
-        .filter(([ship2, move2]) => Geometry.distance(ship1, ship2) <= constants.MAX_SPEED * 2)
-        .filter(([ship2, move2, speed2, angle2]) => {
-            let next1 = Simulation.positionNextTick(ship1, current[2], current[3]);
-            let next2 = Simulation.positionNextTick(ship2, speed2, angle2);
+        .filter(thrust2 => current.ship !== thrust2.ship)
+        .filter(thrust2 => Geometry.distance(current.ship, thrust2.ship) <= constants.MAX_SPEED * 2)
+        .filter(thrust2 => {
+            let next1 = Simulation.positionNextTick(current.ship, current.speed, current.angle);
+            let next2 = Simulation.positionNextTick(thrust2.ship, thrust2.speed, thrust2.angle);
             return Geometry.distance(next1, next2) <= constants.SHIP_RADIUS * 2.2;
         })
-        .forEach(thrust => {
-            thrust[2] = Math.max(0, thrust[2] - 3.5);
+        .forEach(thrust2 => {
+            thrust2.speed = Math.max(0, thrust2.speed - 3.5);
         });
 }
 
