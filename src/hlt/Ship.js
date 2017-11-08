@@ -142,8 +142,9 @@ class Ship extends Entity {
         }
 
         const closeToTarget = Geometry.reduceEnd(this, target, keepDistanceToTarget);
-        const distance = Geometry.distance(this, closeToTarget);
-        const angleDegree = Geometry.angleInDegree(this, closeToTarget);
+        const distance = this.distanceBetween(closeToTarget);
+        const angleDegree = this.angleBetweenInDegree(closeToTarget);
+
         const newSpeed = distance >= speed ? speed : distance;
         return this.thrust(newSpeed, angleDegree);
     }
