@@ -14,31 +14,12 @@ Array.prototype.toString = function () {
 };
 
 /**
- * Map from ship id to the movement vector it applied last tick.
- * This is required, because thrusts only reflect in positional change
- * one tick after they were actually applied.
- * Without this correctional data processing would happen on last ticks positions.
- *
- * @type {Map}
- */
-const lastThrustActions = new Map();
-
-/**
  * Find the actions best suited for the state of the map
  *
  * @param gameMap The gameMap to process
  * @returns {Array} Array of action strings
  */
 function strategy(gameMap) {
-    gameMap.myShips
-        .filter(s => lastThrustActions.has(s.id))
-        .forEach(ship => {
-            ship._params.x = ship.x + lastThrustActions.get(ship.id).x;
-            ship._params.y = ship.y + lastThrustActions.get(ship.id).y;
-        });
-
-    lastThrustActions.clear();
-
     const planetWeights = weightPlanets(gameMap);
 
     const planetsOfInterest = gameMap.planets.filter(p => p.isFree() || (p.isOwnedByMe() && p.hasDockingSpot()));
@@ -87,8 +68,6 @@ function strategy(gameMap) {
 
         resolveDestinationConflicts(current, thrusts);
     });
-
-    thrusts.forEach(thrust => lastThrustActions.set(thrust.ship.id, Simulation.toVector(thrust.speed, thrust.angle)));
 
     return actions.map(action => action.getCommand());
 }
