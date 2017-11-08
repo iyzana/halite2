@@ -32,7 +32,7 @@ class Intent {
     }
 
     navigatePlanet(gameMap, ship) {
-        const to = Geometry.reduceEnd(ship, this.data, this.data.radius + constants.DOCK_RADIUS);
+        const to = Geometry.reduceEnd(ship, this.data, this.data.radius + constants.DOCK_RADIUS - 1);
         const {speed, angle} = findPath(gameMap, ship, to);
         return new ActionThrust(ship, speed, angle);
     }
