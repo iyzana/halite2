@@ -61,6 +61,15 @@ class Simulation {
     static turnsTillNextShip(planet) {
         return (72 - planet.currentProduction) / (planet.numberOfDockedShips * constants.BASE_PRODUCTIVITY);
     }
+
+    static turnsTillEntityReached(ship, entity) {
+        const position = Geometry.reduceEnd(ship, entity, entity.radius);
+        return Simulation.turnsTillPositionReached(ship, position);
+    }
+
+    static turnsTillPositionReached(ship, position) {
+        return Geometry.distance(ship, position) / constants.MAX_SPEED;
+    }
 }
 
 module.exports = Simulation;
