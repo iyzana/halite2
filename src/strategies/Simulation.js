@@ -1,5 +1,6 @@
 const Geometry = require('../hlt/Geometry');
 const constants = require('../hlt/Constants');
+const dockingStatus = require('./DockingStatus');
 
 class Simulation {
     /**
@@ -51,6 +52,11 @@ class Simulation {
             [1];
     }
 
+
+    static productionWithShips(count) {
+        return count * constants.BASE_PRODUCTIVITY;
+    }
+
     /**
      * calculate how many ticks it will take a planet to produce the next ship.
      * the current production value and the number of docked ships are used for the calculation.
@@ -59,7 +65,45 @@ class Simulation {
      * @returns {number} number of ticks
      */
     static turnsTillNextShip(planet) {
-        return (72 - planet.currentProduction) / (planet.numberOfDockedShips * constants.BASE_PRODUCTIVITY);
+        return (72 - planet.currentProduction) / this.productionWithShips(planet.numberOfDockedShips);
+    }
+
+    static turnsTillFullHeuristic(planet) {
+        const ships = (planet.numberOfDockedShips + planet.dockingSpots) / 2;
+
+        return (72 * (planet.freeDockingSpots - 1) + 72 - planet.currentProduction) / this.productionWithShips(ships);
+    }
+
+    static turnsTillFull(gameMap, planet) {
+        let ships = gameMap.myShips
+            .filter(ship => ship.isDocked() || ship.isDocking())
+            .filter(ship => Geometry.distance(ship, planet) < planet.radius + constants.DOCK_RADIUS)
+            .map(ship => ({status: ship.dockingStatus, progress: ship.dockingProgress}));
+
+        let turns = 0;
+        let currentProduction = planet.currentProduction;
+        while (planet.dockingSpots - ships.length) {
+            let dockedShips = ships.filter(ship => ship.dockingStatus === dockingStatus.DOCKED);
+            currentProduction += Simulation.productionWithShips(dockedShips.length);
+
+            ships.forEach(ship => {
+                if (ship.status === dockingStatus.UNDOCKED)
+                    ship.status = dockingStatus.DOCKING;
+                else if (ship.status === dockingStatus.DOCKING) {
+                    if (ship.progress === constants.DOCK_TURNS)
+                        ship.status = dockingStatus.DOCKED;
+                    else
+                        ship.progress++
+                }
+            });
+
+            if (currentProduction >= 72)
+                ships.push({status: dockingStatus.UNDOCKED, progress: 0});
+
+            turns++;
+        }
+
+        return turns;
     }
 
     static turnsTillEntityReached(ship, entity) {

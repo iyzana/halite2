@@ -33,10 +33,10 @@ class DockingGoal {
             .sort((ship1, ship2) => Geometry.distance(ship1, ship2))
             .map(ship => {
                 const turnsTillEntityReached = Simulation.turnsTillEntityReached(ship, planet);
-                if(turnsTillNewShip < turnsTillEntityReached) {
-                    return { score: 0, ship, goal:this };
+                if (turnsTillNewShip < turnsTillEntityReached) {
+                    return {score: 0, ship, goal: this};
                 }
-        })
+            })
     }
 
     getShipCommands(ships) {
@@ -104,28 +104,26 @@ function rateGoals(goals) {
     return goals;
 }
 
-Array.prototype.flatMap = function(lambda) {
+Array.prototype.flatMap = function (lambda) {
     return Array.prototype.concat.apply([], this.map(lambda));
 };
 
-Array.prototype.groupBy = function(keyFunction) {
-    var groups = {};
-    this.forEach(function(el) {
-        var key = keyFunction(el);
-        if (key in groups == false) {
+Array.prototype.groupBy = function (keyFunction) {
+    const groups = {};
+    this.forEach(function (el) {
+        const key = keyFunction(el);
+        if (key in groups === false) {
             groups[key] = [];
         }
         groups[key].push(el);
     });
-    return Object.keys(groups).map(function(key) {
+    return Object.keys(groups).map(function (key) {
         return {
             key: key,
             values: groups[key]
         };
     });
 };
-
-
 
 function calcShipRequests(gameMap, goals) {
     return goals
