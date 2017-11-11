@@ -5,13 +5,11 @@ const Simulation = require('./Simulation');
 const constants = require('../hlt/Constants');
 const {spread, weightPlanets} = require('./Spread');
 const {attack} = require('./Attack');
-const ShipIntents = require('./ShipIntents');
+const ShipIntents = require('./goal/ShipIntents');
 const ActionThrust = require('./ActionThrust');
 const ActionDock = require('./ActionDock');
 
-Array.prototype.toString = function () {
-    return "[" + this.join(", ") + "]";
-};
+require('./ArrayHelper');
 
 /**
  * Find the actions best suited for the state of the map
