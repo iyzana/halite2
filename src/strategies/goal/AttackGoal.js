@@ -1,5 +1,7 @@
 const ActionThrust = require("../ActionThrust");
+const Geometry = require("../../hlt/Geometry");
 const GoalIntent = require('./GoalIntent');
+const {findPath} = require("../LineNavigation");
 
 class AttackGoal {
     constructor(enemy) {
@@ -8,7 +10,10 @@ class AttackGoal {
 
     shipRequests(gameMap) {
         return gameMap.myShips.map(ship => {
-            return new GoalIntent(ship, this, 0);
+            const maxDistance = Math.sqrt(Math.pow(gameMap.width, 2) + Math.pow(gameMap.height, 2));
+
+            let score = 1 - Geometry.distance(ship, this.enemy) / maxDistance;
+            return new GoalIntent(ship, this, score);
         })
     }
 
@@ -18,12 +23,17 @@ class AttackGoal {
 
     getShipCommands(gameMap, ships) {
         return ships.map(ship => {
-            return new ActionThrust(ship, 0, 0);
+            return AttackGoal.navigateAttack(gameMap, ship, this.enemy);
         })
     }
 
     toString() {
         return "attack->" + this.enemy;
+    }
+
+    static navigateAttack(gameMap, ship, enemy) {
+        const {speed, angle} = findPath(gameMap, ship, enemy);
+        return new ActionThrust(ship, speed, angle);
     }
 }
 

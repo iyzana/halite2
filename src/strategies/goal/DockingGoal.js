@@ -28,7 +28,7 @@ class DockingGoal {
 
                 let score = 1 - Geometry.distance(ship, this.planet) / maxDistance;
                 return new GoalIntent(ship, this, score);
-            })
+            });
     }
 
     effectivenessPerShip(shipSet) {
