@@ -1,5 +1,6 @@
 const constants = require('../hlt/Constants');
 const Geometry = require('../hlt/Geometry');
+const Simulation = require('./Simulation');
 const log = require('../hlt/Log');
 
 const Intent = require('./Intent');
@@ -14,6 +15,7 @@ function spread(gameMap, planetsOfInterest, ship, planetWeights) {
     }
 
     return planetsOfInterest.map(planet => {
+
         const score = getPlanetScore(gameMap, ship, planet, planetWeights.get(planet));
 
         return new Intent(score, "spread", planet);
@@ -22,9 +24,16 @@ function spread(gameMap, planetsOfInterest, ship, planetWeights) {
 
 function getPlanetScore(gameMap, ship, planet, weight) {
     const shipPct = gameMap.myShips.length / gameMap.allShips.length;
+
+    let turnsTillEntityReached = Simulation.turnsTillEntityReached(ship, planet);
+    let turnsTillFull = Simulation.turnsTillFull(gameMap, planet);
+    let uselessMoves = 0;
+    if (turnsTillEntityReached >= turnsTillFull)
+        uselessMoves = .6;
+
     const distPct = 1 - Geometry.distance(ship, planet) / maxDistance;
     const gain = shipPct < 0.33 ? 1 - weight / maxWeight : weight / maxWeight;
-    return (distPct * 0.8 + gain * 0.2) * (3 - shipPct * 1.8);
+    return (distPct * 0.8 + gain * 0.2) * (3 - shipPct * 1.8) - uselessMoves;
 }
 
 /**
