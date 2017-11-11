@@ -11,14 +11,14 @@ Array.prototype.groupBy = function (keyFunction) {
     this.forEach(function (el) {
         const key = keyFunction(el);
         if (key in groups === false) {
-            groups[key] = [];
+            groups[key] = {key: key, values: []};
         }
-        groups[key].push(el);
+        groups[key].values.push(el);
     });
     return Object.keys(groups).map(function (key) {
         return {
-            key: key,
-            values: groups[key]
+            key: groups[key].key,
+            values: groups[key].values
         };
     });
 };

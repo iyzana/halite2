@@ -11,3 +11,5 @@ class GoalIntent {
         return roundedScore + "#" + this.goal;
     }
 }
+
+module.exports = GoalIntent;

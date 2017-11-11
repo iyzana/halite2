@@ -1,3 +1,6 @@
+const ActionThrust = require("../ActionThrust");
+const GoalIntent = require('./GoalIntent');
+
 class AttackGoal {
     constructor(enemy) {
         this.enemy = enemy;
@@ -5,7 +8,7 @@ class AttackGoal {
 
     shipRequests(gameMap) {
         return gameMap.myShips.map(ship => {
-            return {score: 0, ship, goal: this};
+            return new GoalIntent(ship, this, 0);
         })
     }
 

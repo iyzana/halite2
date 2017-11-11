@@ -8,6 +8,7 @@ const {attack} = require('./Attack');
 const ShipIntents = require('./goal/ShipIntents');
 const ActionThrust = require('./ActionThrust');
 const ActionDock = require('./ActionDock');
+const {getActions} = require('./goal/Goal');
 
 require('./ArrayHelper');
 
@@ -18,47 +19,49 @@ require('./ArrayHelper');
  * @returns {Array} Array of action strings
  */
 function strategy(gameMap) {
-    const planetWeights = weightPlanets(gameMap);
+    // const planetWeights = weightPlanets(gameMap);
+    //
+    // const planetsOfInterest = gameMap.planets.filter(p => p.isFree() || (p.isOwnedByMe() && p.hasDockingSpot()));
+    //
+    // log.log("planets: " + planetsOfInterest);
+    //
+    // const possibleIntents = gameMap.myShips
+    //     .filter(s => s.isUndocked())
+    //     .map(ship => {
+    //         const intents = [...attack(ship, gameMap), ...spread(gameMap, planetsOfInterest, ship, planetWeights)];
+    //
+    //         intents.sort((a, b) => b.score - a.score);
+    //
+    //         return new ShipIntents(ship, intents);
+    //     });
+    //
+    // planetsOfInterest.forEach(planet => {
+    //     // search ships most fitting for populating planet
+    //     let candidateShips = possibleIntents
+    //         .map(shipIntents => [shipIntents.intents.findIndex(intent => intent.data === planet), shipIntents])
+    //         .filter(tuple => tuple[0] !== -1);
+    //     candidateShips.sort((a, b) => b[1].intents[b[0]].score - a[1].intents[a[0]].score);
+    //
+    //     // remove planet intent from other ships
+    //     candidateShips
+    //         .slice(planet.freeDockingSpots)
+    //         .forEach(tuple => tuple[1].intents.splice(tuple[0], 1));
+    // });
+    //
+    // // actually makes stuff slightly worse, needs improvement
+    // // distributeAttacks(gameMap, possibleIntents);
+    //
+    // const actions = possibleIntents
+    //     .map(shipIntents => {
+    //         const ship = shipIntents.ship;
+    //         const intent = shipIntents.intents[0];
+    //
+    //         log.log(ship + ': ' + shipIntents.intents.slice(0, Math.min(shipIntents.intents.length, 3)));
+    //
+    //         return intent.getAction(gameMap, ship);
+    //     });
 
-    const planetsOfInterest = gameMap.planets.filter(p => p.isFree() || (p.isOwnedByMe() && p.hasDockingSpot()));
-
-    log.log("planets: " + planetsOfInterest);
-
-    const possibleIntents = gameMap.myShips
-        .filter(s => s.isUndocked())
-        .map(ship => {
-            const intents = [...attack(ship, gameMap), ...spread(gameMap, planetsOfInterest, ship, planetWeights)];
-
-            intents.sort((a, b) => b.score - a.score);
-
-            return new ShipIntents(ship, intents);
-        });
-
-    planetsOfInterest.forEach(planet => {
-        // search ships most fitting for populating planet
-        let candidateShips = possibleIntents
-            .map(shipIntents => [shipIntents.intents.findIndex(intent => intent.data === planet), shipIntents])
-            .filter(tuple => tuple[0] !== -1);
-        candidateShips.sort((a, b) => b[1].intents[b[0]].score - a[1].intents[a[0]].score);
-
-        // remove planet intent from other ships
-        candidateShips
-            .slice(planet.freeDockingSpots)
-            .forEach(tuple => tuple[1].intents.splice(tuple[0], 1));
-    });
-
-    // actually makes stuff slightly worse, needs improvement
-    // distributeAttacks(gameMap, possibleIntents);
-
-    const actions = possibleIntents
-        .map(shipIntents => {
-            const ship = shipIntents.ship;
-            const intent = shipIntents.intents[0];
-
-            log.log(ship + ': ' + shipIntents.intents.slice(0, Math.min(shipIntents.intents.length, 3)));
-
-            return intent.getAction(gameMap, ship);
-        });
+    const actions = getActions(gameMap);
 
     const thrusts = actions.filter(action => action instanceof ActionThrust);
     thrusts.forEach(current => {
