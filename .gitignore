@@ -5,8 +5,14 @@
 *.log
 *.hlt
 
+#compiled python
+*.pyc
+
 # build
 dist/
 __pycache__
 
 node_modules/
+
+#offline viewer
+chlorine/*
