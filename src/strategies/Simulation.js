@@ -121,6 +121,57 @@ class Simulation {
     static turnsTillPositionReached(ship, position) {
         return Geometry.distance(ship, position) / constants.MAX_SPEED;
     }
+
+    // ported to js from the halite game-engine source code
+    static collisionTime(radius, pos1, pos2, thrust1, thrust2) {
+        // With credit to Ben Spector
+        const dx = pos1.x - pos2.x;
+        const dy = pos1.y - pos2.y;
+        const dvx = thrust1.x - thrust2.x;
+        const dvy = thrust1.y - thrust2.y;
+
+        // Quadratic formula
+        const a = Math.pow(dvx, 2) + Math.pow(dvy, 2);
+        const b = 2 * (dx * dvx + dy * dvy);
+        const c = Math.pow(dx, 2) + Math.pow(dy, 2) - Math.pow(radius, 2);
+
+        const disc = Math.pow(b, 2) - 4 * a * c;
+
+        if (a === 0.0) {
+            if (b === 0.0) {
+                if (c <= 0.0) {
+                    // Implies r^2 >= dx^2 + dy^2 and the two are already colliding
+                    return { collision: true, time: 0.0 };
+                }
+                return { collision: false, time: 0.0 };
+            }
+            const t = -c / b;
+            if (t >= 0.0) {
+                return { collision: true, time: t };
+            }
+            return { collision: false, time: 0.0 };
+        }
+        else if (disc === 0.0) {
+            // One solution
+            const t = -b / (2 * a);
+            return { collision: true, time: t };
+        }
+        else if (disc > 0) {
+            const t1 = -b + Math.sqrt(disc);
+            const t2 = -b - Math.sqrt(disc);
+
+            if (t1 >= 0.0 && t2 >= 0.0) {
+                return { collision: true, time: Math.min(t1, t2) / (2 * a) };
+            } else if (t1 <= 0.0 && t2 <= 0.0) {
+                return { collision: true, time: Math.max(t1, t2) / (2 * a) };
+            } else {
+                return { collision: true, time: 0.0 };
+            }
+        }
+        else {
+            return { collision: false, time: 0.0 };
+        }
+    }
 }
 
 module.exports = Simulation;
