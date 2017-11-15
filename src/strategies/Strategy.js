@@ -12,6 +12,8 @@ const {getActions} = require('./goal/Goal');
 
 require('./ArrayHelper');
 
+let previousGameMap;
+
 /**
  * Find the actions best suited for the state of the map
  *
@@ -60,6 +62,10 @@ function strategy(gameMap) {
     //
     //         return intent.getAction(gameMap, ship);
     //     });
+
+    if(previousGameMap) {
+        gameMap.previous = previousGameMap;
+    }
 
     const actions = getActions(gameMap);
 
