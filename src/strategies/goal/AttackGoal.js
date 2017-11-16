@@ -1,11 +1,17 @@
 const ActionThrust = require("../ActionThrust");
 const Geometry = require("../../hlt/Geometry");
+const Simulation = require("../Simulation");
 const GoalIntent = require('./GoalIntent');
 const {findPath} = require("../LineNavigation");
 
 class AttackGoal {
-    constructor(enemy) {
+    constructor(gameMap, enemy) {
         this.enemy = enemy;
+
+        if (this.enemy.isDocked()) {
+            this.dockedAt = Simulation.nearestEntity(gameMap.planets, this.enemy);
+            this.nextShip = Simulation.turnsTillNextShip(this.dockedAt);
+        }
     }
 
     shipRequests(gameMap) {

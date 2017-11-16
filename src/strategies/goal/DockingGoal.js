@@ -7,7 +7,7 @@ const GoalIntent = require('./GoalIntent');
 const {findPath} = require("../LineNavigation");
 
 class DockingGoal {
-    constructor(planet) {
+    constructor(gameMap, planet) {
         this.planet = planet;
     }
 

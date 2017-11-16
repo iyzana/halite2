@@ -2,7 +2,7 @@ const ActionThrust = require("../ActionThrust");
 const GoalIntent = require('./GoalIntent');
 
 class DefenseGoal {
-    constructor(planet) {
+    constructor(gameMap, planet) {
         this.planet = planet;
     }
 
