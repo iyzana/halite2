@@ -140,35 +140,37 @@ class Simulation {
             if (b === 0.0) {
                 if (c <= 0.0) {
                     // Implies r^2 >= dx^2 + dy^2 and the two are already colliding
-                    return { collision: true, time: 0.0 };
+                    return {collision: true, time: 0.0};
                 }
-                return { collision: false, time: 0.0 };
+                return {collision: false, time: 0.0};
             }
             const t = -c / b;
             if (t >= 0.0) {
-                return { collision: true, time: t };
+                return {collision: t <= 1.0, time: t};
             }
-            return { collision: false, time: 0.0 };
+            return {collision: false, time: 0.0};
         }
         else if (disc === 0.0) {
             // One solution
             const t = -b / (2 * a);
-            return { collision: true, time: t };
+            return {collision: t >= 0.0 && t <= 1.0, time: t};
         }
         else if (disc > 0) {
             const t1 = -b + Math.sqrt(disc);
             const t2 = -b - Math.sqrt(disc);
 
             if (t1 >= 0.0 && t2 >= 0.0) {
-                return { collision: true, time: Math.min(t1, t2) / (2 * a) };
+                const time = Math.min(t1, t2) / (2 * a);
+                return {collision: time >= 0.0 && time <= 1.0, time: time};
             } else if (t1 <= 0.0 && t2 <= 0.0) {
-                return { collision: true, time: Math.max(t1, t2) / (2 * a) };
+                const time = Math.max(t1, t2) / (2 * a);
+                return {collision: time >= 0.0 && time <= 1.0, time: time};
             } else {
-                return { collision: true, time: 0.0 };
+                return {collision: true, time: 0.0};
             }
         }
         else {
-            return { collision: false, time: 0.0 };
+            return {collision: false, time: 0.0};
         }
     }
 }

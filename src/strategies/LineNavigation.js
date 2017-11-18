@@ -22,26 +22,26 @@ function findPath(gameMap, ship, to, ignore, depth) {
     const allShips = gameMap.allShips
         .filter(s => s.id !== ship.id && (!ignore || s.id !== ignore.id));
 
-    log.log("path from " + ship + " to [" + Math.floor(to.x) + "," + Math.floor(to.y) + "]");
+    // log.log("path from " + ship + " to [" + Math.floor(to.x) + "," + Math.floor(to.y) + "]");
 
     let obstacles = obstaclesBetween(gameMap.planets, ship, to).concat(obstaclesBetween(allShips, ship, to));
 
     if (obstacles.length) {
-        log.log(obstacles.length + " obstacles");
+        // log.log(obstacles.length + " obstacles");
 
         // find closest obstacle
         obstacles.sort((a, b) => Geometry.distance(ship, a) - Geometry.distance(ship, b));
 
         const obstacle = obstacles[0];
 
-        log.log("avoiding obstacle " + obstacle);
+        // log.log("avoiding obstacle " + obstacle);
 
         const angle = Geometry.angleInRad(ship, to);
         const escapeLength = obstacle.radius + 0.8;
 
 
-        log.log("angle: " + angle);
-        log.log("length: " + escapeLength);
+        // log.log("angle: " + angle);
+        // log.log("length: " + escapeLength);
 
         let dx = escapeLength * Math.sin(angle);
         let dy = escapeLength * Math.cos(angle);
@@ -53,9 +53,9 @@ function findPath(gameMap, ship, to, ignore, depth) {
 
         let escapePoint = Geometry.reduceEnd(ship, distanceA < distanceB ? escapePointA : escapePointB, -10);
 
-        log.log("escapePointA: " + JSON.stringify(escapePointA));
-        log.log("escapePointB: " + JSON.stringify(escapePointB));
-        log.log("escapePoint: " + JSON.stringify(escapePoint));
+        // log.log("escapePointA: " + JSON.stringify(escapePointA));
+        // log.log("escapePointB: " + JSON.stringify(escapePointB));
+        // log.log("escapePoint: " + JSON.stringify(escapePoint));
 
         const result = findPath(gameMap, ship, escapePoint, ignore, depth + 1);
 
@@ -72,12 +72,12 @@ function findPath(gameMap, ship, to, ignore, depth) {
         return result;
     }
 
-    log.log("no obstacles");
+    // log.log("no obstacles");
 
     const distance = Geometry.distance(ship, to);
     const angle = Geometry.angleInDegree(ship, to);
     const speed = Math.max(1, distance >= constants.MAX_SPEED ? constants.MAX_SPEED : distance);
-    log.log(">" + speed + " ø" + angle);
+    // log.log(">" + speed + " ø" + angle);
     return {speed, angle};
 }
 

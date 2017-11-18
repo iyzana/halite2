@@ -73,12 +73,21 @@ function strategy(gameMap) {
     const actions = getActions(gameMap);
 
     const thrusts = actions.filter(action => action instanceof ActionThrust);
+
+    thrusts.forEach(thrust => {
+        log.log("1 thrust " + thrust.ship + " => >" + thrust.speed + " ø" + thrust.angle)
+    });
+
     thrusts.forEach(current => {
         alignSimilarAngles(current, thrusts);
 
         resolveDestinationConflicts(current, thrusts);
 
         resolveCollisions(current, thrusts);
+    });
+
+    thrusts.forEach(thrust => {
+        log.log("2 thrust " + thrust.ship + " => >" + thrust.speed + " ø" + thrust.angle)
     });
 
     return actions.map(action => action.getCommand());
@@ -155,6 +164,8 @@ function alignSimilarAngles(current, thrusts) {
             .reduce((prev, cur) => prev + cur, 0) / similarThrusts.length;
     const avgAngle = current.angle + avgDifference;
 
+    log.log("align angles " + similarThrusts.map(t => t.ship) + " to " + avgAngle);
+
     // apply it
     similarThrusts.forEach(thrust => thrust.angle = avgAngle);
 }
@@ -169,7 +180,7 @@ function alignSimilarAngles(current, thrusts) {
 function resolveDestinationConflicts(current, thrusts) {
     thrusts
         .filter(thrust2 => current.ship !== thrust2.ship)
-        .filter(thrust2 => Geometry.distance(current.ship, thrust2.ship) <= constants.MAX_SPEED * 2)
+        .filter(thrust2 => Geometry.distance(current.ship, thrust2.ship) <= constants.MAX_SPEED * 2 + constants.SHIP_RADIUS * 2)
         .filter(thrust2 => {
             let next1 = Simulation.positionNextTick(current.ship, current.speed, current.angle);
             let next2 = Simulation.positionNextTick(thrust2.ship, thrust2.speed, thrust2.angle);
@@ -177,6 +188,7 @@ function resolveDestinationConflicts(current, thrusts) {
         })
         .forEach(thrust2 => {
             thrust2.speed = Math.max(0, thrust2.speed - 3.5);
+            log.log("throttling speed for " + thrust2.ship + " to " + thrust2.speed);
         });
 }
 

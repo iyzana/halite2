@@ -45,7 +45,7 @@ class Game {
 
         function startGameLoop() {
             Networking.forEachReadLine(line => {
-                Log.log(`turn #${turnNumber}, map:`);
+                Log.log(`turn ############################## ${turnNumber} ##############################, map:`);
                 Log.log(line);
 
                 const map = mapParser.parse(line);
