@@ -4,11 +4,12 @@ const AttackGoal = require('./AttackGoal');
 const DefenseGoal = require('./DefenseGoal');
 const ShipIntents = require('./ShipIntents');
 const GoalIntent = require('./GoalIntent');
+const Geometry = require("../../hlt/Geometry");
 
 function getActions(gameMap) {
     const goals = identifyGoals(gameMap);
 
-    const ratedGoals = rateGoals(goals);
+    const ratedGoals = rateGoals(gameMap, goals);
 
     const requests = calcShipRequests(gameMap, ratedGoals);
 
@@ -31,15 +32,22 @@ function identifyGoals(gameMap) {
     return [...planetGoals, ...defenseGoals, ...attackGoals];
 }
 
-function rateGoals(goals) {
+function rateGoals(gameMap, goals) {
+    const maxDistance = Math.sqrt(Math.pow(gameMap.width, 2) + Math.pow(gameMap.height, 2)) / 2;
+    const populatedPlanetsPct = gameMap.planets.filter(p => p.isOwned()).length / gameMap.planets.length;
+
     goals.forEach(goal => {
         if (goal instanceof DockingGoal) {
-            goal.score = 0.98;
+            const distance = Geometry.distance(goal.planet, {x: gameMap.width / 2, y: gameMap.height / 2});
+            const distPct = gameMap.numberOfPlayers === 2 || populatedPlanetsPct > 0.6 ? 0.5 : distance / maxDistance;
+            goal.score = 0.98 + (distPct - 0.5) * 0.1;
         } else if (goal instanceof DefenseGoal) {
             goal.score = 1;
         } else if (goal instanceof AttackGoal) {
             if (goal.enemy.isUndocked()) {
                 goal.score = 1.02;
+            } else if (goal.enemy.isUndocking()) {
+                goal.score = 1.045
             } else {
                 goal.score = 1.04;
             }
