@@ -5,12 +5,13 @@
 *.log
 *.hlt
 
-#compiled python
-*.pyc
+# ranking data
+db.sqlite3
 
 # build
 dist/
 __pycache__
+*.pyc
 
 node_modules/
 
