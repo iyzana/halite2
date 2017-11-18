@@ -22,7 +22,7 @@ class Intent {
     getAction(gameMap, ship) {
         if (this.type === "spread") {
             if (ship.canDock(this.data)) {
-                return new ActionDock(ship, this.data);
+                return new ActionDock(ship, this.data, true);
             } else {
                 return this.navigatePlanet(gameMap, ship);
             }

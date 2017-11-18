@@ -38,7 +38,7 @@ class DockingGoal {
     getShipCommands(gameMap, ships) {
         return ships.map(ship => {
             if (ship.canDock(this.planet)) {
-                return new ActionDock(ship, this.planet);
+                return new ActionDock(ship, this.planet, true);
             } else {
                 return DockingGoal.navigatePlanet(gameMap, ship, this.planet);
             }

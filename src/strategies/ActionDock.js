@@ -1,11 +1,12 @@
 class ActionDock {
-    constructor(ship, planet) {
+    constructor(ship, planet, isDocking) {
         this.ship = ship;
         this.planet = planet;
+        this.isDocking = isDocking;
     }
 
     getCommand() {
-        return this.ship.dock(this.planet);
+        return isDocking ? this.ship.dock(this.planet) : this.ship.unDock();
     }
 }
 
