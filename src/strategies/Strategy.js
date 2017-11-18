@@ -77,6 +77,8 @@ function strategy(gameMap) {
         alignSimilarAngles(current, thrusts);
 
         resolveDestinationConflicts(current, thrusts);
+
+        resolveCollisions(current, thrusts);
     });
 
     return actions.map(action => action.getCommand());
@@ -176,6 +178,36 @@ function resolveDestinationConflicts(current, thrusts) {
         .forEach(thrust2 => {
             thrust2.speed = Math.max(0, thrust2.speed - 3.5);
         });
+}
+
+function resolveCollisions(current, thrusts) {
+    thrusts
+        .filter(thrust2 => current.ship !== thrust2.ship)
+        .filter(thrust2 => Geometry.distance(current.ship, thrust2.ship) <= constants.MAX_SPEED * 2)
+        .forEach(thrust2 => {
+            const t1 = Simulation.toVector(current.speed, current.angle);
+            const t2 = Simulation.toVector(thrust2.speed, thrust2.angle);
+            const {collision} = Simulation.collisionTime(constants.SHIP_RADIUS*2, current.ship, thrust2.ship, t1, t2);
+
+            if (collision) {
+                log.log(`swapping: ${current.ship.id} <> ${thrust2.ship.id}`);
+                t1.x += current.ship.x;
+                t1.y += current.ship.y;
+
+                t2.x += thrust2.ship.x;
+                t2.y += thrust2.ship.y;
+
+                const tmp = thrust2.ship;
+                thrust2.ship = current.ship;
+                thrust2.speed = Math.min(7, Geometry.distance(thrust2.ship, t2));
+                thrust2.angle = Geometry.angleInDegree(thrust2.ship, t2);
+
+                current.ship = tmp;
+                current.speed = Math.min(7, Geometry.distance(current.ship, t1));
+                current.angle = Geometry.angleInDegree(current.ship, t1);
+            }
+
+        })
 }
 
 module.exports = {strategy};
