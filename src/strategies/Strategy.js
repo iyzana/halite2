@@ -65,7 +65,10 @@ function strategy(gameMap) {
 
     if(previousGameMap) {
         gameMap.previous = previousGameMap;
+    } else {
+        gameMap.previous = gameMap;
     }
+    previousGameMap = gameMap;
 
     const actions = getActions(gameMap);
 

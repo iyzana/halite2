@@ -16,6 +16,8 @@ class DefenseGoal {
         const distances = gameMap.enemyShips
             .filter(ship => {
                const previousShip = gameMap.previous.shipById(ship.id);
+               if (!previousShip) return false;
+
                const length = 100;
 
                const end = {
@@ -33,6 +35,11 @@ class DefenseGoal {
                         .sort((a, b) => b[1] - a[1]))
                 )
             .sort((a, b) => b[1] - a[1]);
+
+        //No defense needed
+        if(distances.length === 0) {
+            return [];
+        }
 
         this.endangeredShip = distances[0][0];
         const distance = distances[0][1];

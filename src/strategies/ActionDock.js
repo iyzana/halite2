@@ -6,7 +6,7 @@ class ActionDock {
     }
 
     getCommand() {
-        return isDocking ? this.ship.dock(this.planet) : this.ship.unDock();
+        return this.isDocking ? this.ship.dock(this.planet) : this.ship.unDock();
     }
 }
 
