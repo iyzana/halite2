@@ -9,7 +9,7 @@ class AttackGoal {
         this.enemy = enemy;
 
         if (this.enemy.isDocked()) {
-            this.dockedAt = Simulation.nearestEntity(gameMap.planets, this.enemy);
+            this.dockedAt = Simulation.nearestEntity(gameMap.planets, this.enemy).entity;
             this.nextShip = Simulation.turnsTillNextShip(this.dockedAt);
         }
     }

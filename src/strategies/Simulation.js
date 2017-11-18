@@ -48,9 +48,8 @@ class Simulation {
             .filter(entity => entity !== start)
             .reduce((acc, entity) => {
                 const dist = Geometry.distance(start, entity);
-                return dist < acc[0] ? [dist, entity] : acc;
-            }, [Infinity, null])
-            [1];
+                return dist < acc.dist ? {dist, entity} : acc;
+            }, {dist: Infinity, entity: null});
     }
 
 

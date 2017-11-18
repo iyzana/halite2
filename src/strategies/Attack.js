@@ -32,7 +32,7 @@ function getAttackScore(ship, enemy, attackPosition, gameMap) {
     // if the docked enemy can be reached before its planet produces another ship
     let unprotectedPlanet = -0.25;
     if (!enemy.isUndocked()) {
-        const planet = Simulation.nearestEntity(gameMap.planets, enemy);
+        const planet = Simulation.nearestEntity(gameMap.planets, enemy).entity;
 
         const turnsTillReach = distance / constants.MAX_SPEED;
         const turnsTillNewShip = Simulation.turnsTillNextShip(planet);
