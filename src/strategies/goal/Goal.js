@@ -47,9 +47,13 @@ function rateGoals(gameMap, goals) {
             if (goal.enemy.isUndocked()) {
                 goal.score = 1.02;
             } else if (goal.enemy.isUndocking()) {
-                goal.score = 1.045
+                goal.score = 1.045;
             } else {
                 goal.score = 1.04;
+            }
+
+            if (gameMap.numberOfPlayers === 4 && populatedPlanetsPct <= 0.5) {
+                goal.score -= 0.02;
             }
         }
     });
