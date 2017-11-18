@@ -14,6 +14,7 @@ class DefenseGoal {
     shipRequests(gameMap) {
 
         const distances = gameMap.enemyShips
+            .filter(ship => ship.isUndocked())
             .filter(ship => {
                 const previousShip = gameMap.previous.shipById(ship.id);
                 if (!previousShip) return false;
@@ -26,7 +27,7 @@ class DefenseGoal {
                 };
 
                 //ship is flying in the direction of our planet
-                return Geometry.intersectSegmentCircle(ship, end, this.planet, Constants.DOCK_RADIUS);
+                return Geometry.intersectSegmentCircle(ship, end, this.planet, this.planet.radius + Constants.DOCK_RADIUS);
             })
             .filter(ship => gameMap.obstaclesBetween(ship, this.planet).length === 0)
             .map(ship =>
@@ -53,7 +54,7 @@ class DefenseGoal {
         const sortedShipsInRange = gameMap.myShips
             .filter(ship => ship.isUndocked())
             .map(ship => [ship, Geometry.distance(ship, this.endangeredShip)])
-            .filter(tuple => tuple[1] < distance)
+            .filter(tuple => tuple[1] < distance + 20)
             .sort((a, b) => b[1] - a[1]);
 
         if (sortedShipsInRange.length === 0) {

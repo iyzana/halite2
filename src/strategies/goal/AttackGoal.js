@@ -15,12 +15,14 @@ class AttackGoal {
     }
 
     shipRequests(gameMap) {
-        return gameMap.myShips.map(ship => {
-            const maxDistance = Math.sqrt(Math.pow(gameMap.width, 2) + Math.pow(gameMap.height, 2));
+        return gameMap.myShips
+            .filter(ship => ship.isUndocked())
+            .map(ship => {
+                const maxDistance = Math.sqrt(Math.pow(gameMap.width, 2) + Math.pow(gameMap.height, 2));
 
-            let score = 1 - Geometry.distance(ship, this.enemy) / maxDistance;
-            return new GoalIntent(ship, this, score);
-        })
+                let score = 1 - Geometry.distance(ship, this.enemy) / maxDistance;
+                return new GoalIntent(ship, this, score);
+            })
     }
 
     effectivenessPerShip(shipSet) {

@@ -15,6 +15,7 @@ class DockingGoal {
         const turnsTillNewShip = Simulation.turnsTillNextShip(this.planet);
 
         return gameMap.myShips
+            .filter(ship => ship.isUndocked())
             .sort((ship1, ship2) => Geometry.distance(ship1, ship2))
             .map(ship => {
                 const turnsTillEntityReached = Simulation.turnsTillEntityReached(ship, this.planet);
