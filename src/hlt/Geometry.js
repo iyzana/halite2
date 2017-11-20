@@ -55,7 +55,7 @@ class Geometry {
      * @returns {number} positive remainder
      */
     static mod(a, n) {
-        return a - Math.floor(a/n) * n
+        return a - Math.floor(a / n) * n
     }
 
     /**
@@ -108,6 +108,22 @@ class Geometry {
      */
     static toRad(degree) {
         return degree * Math.PI / 180.0;
+    }
+
+    /**
+     * averages the position of the given entities
+     * @param {Array} entities
+     */
+    static averagePos(entities) {
+        const pos = entities.reduce((acc, cur) => {
+                acc.x += cur.x;
+                acc.y += cur.y;
+                return acc;
+            }, {x: 0, y: 0});
+
+        pos.x /= entities.length;
+        pos.y /= entities.length;
+        return pos;
     }
 
     /**
