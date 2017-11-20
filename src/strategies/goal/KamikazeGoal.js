@@ -10,26 +10,25 @@ class KamikazeGoal {
     }
 
     shipRequests(gameMap) {
-        const nearEnemies = gameMap.enemyShips
-            .filter(enemy => Geometry.distance(enemy, this.ship) < constants.WEAPON_RADIUS+constants.SHIP_RADIUS*2 - 0.001);
-
-        const damageReceiving = nearEnemies
+        const damageReceiving = gameMap.enemyShips
             .filter(enemy => enemy.isUndocked())
+            .filter(enemy => Geometry.distance(enemy, this.ship) < constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2 - 0.001)
             .map(enemy => {
                 const damageSplitBetween = gameMap.allShips
                     .filter(ship => ship.ownerId !== enemy.ownerId)
-                    .filter(ship => Geometry.distance(enemy, ship) < constants.WEAPON_RADIUS+constants.SHIP_RADIUS*2 - 0.001)
+                    .filter(ship => Geometry.distance(enemy, ship) < constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2 - 0.001)
                     .length;
 
                 return constants.WEAPON_DAMAGE / damageSplitBetween;
             })
             .reduce((acc, cur) => acc + cur, 0);
 
-        if(damageReceiving < this.ship.health &&
-            2*damageReceiving > this.ship.health) {
+        if (damageReceiving < this.ship.health && this.ship.health < 2 * damageReceiving) {
+            log.log(this.ship + " kamikaze dmg receiving " + damageReceiving + " at health " + this.ship.health);
+
             const targets = gameMap.enemyShips
                 .filter(e => !e.isUndocked())
-                .filter(e => Geometry.distance(e, this.ship) < constants.MAX_SPEED+constants.SHIP_RADIUS*2 - 0.001)
+                .filter(e => Geometry.distance(e, this.ship) < constants.MAX_SPEED + constants.SHIP_RADIUS * 2 - 0.001)
                 .sort((a, b) => b.health - a.health);
 
             if (targets.length === 0 || targets[0].health < 64) return [];
@@ -51,7 +50,7 @@ class KamikazeGoal {
 
     getShipCommands(gameMap, ships) {
         const angle = Geometry.angleInDegree(this.ship, this.target);
-        const speed = Math.min(7, Geometry.distance(this.ship, this.target));
+        const speed = Math.min(7, Geometry.distance(this.ship, this.target) + 1);
 
         return new ActionThrust(this.ship, speed, angle);
     }

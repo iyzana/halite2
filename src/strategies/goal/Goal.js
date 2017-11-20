@@ -31,7 +31,9 @@ function identifyGoals(gameMap) {
 
     const attackGoals = gameMap.enemyShips.map(ship => new AttackGoal(gameMap, ship));
 
-    const kamikazeGoals = gameMap.myShips.map(ship => new KamikazeGoal(gameMap, ship));
+    const kamikazeGoals = gameMap.myShips
+        .filter(ship => ship.isUndocked())
+        .map(ship => new KamikazeGoal(gameMap, ship));
 
     return [...planetGoals, ...defenseGoals, ...attackGoals, ...kamikazeGoals];
 }
@@ -72,7 +74,6 @@ function rateGoals(gameMap, goals) {
 }
 
 function calcShipRequests(gameMap, goals) {
-    // groupBy implementation stringifies keys :(
     return goals
         .flatMap(goal => goal.shipRequests(gameMap))
         .map(goalIntent => new GoalIntent(goalIntent.ship, goalIntent.goal, goalIntent.score * goalIntent.goal.score))
@@ -82,8 +83,6 @@ function calcShipRequests(gameMap, goals) {
 
 function magicLoop(shipIntents) {
     // TODO: do magic stuff to assign ships to goals based on effectiveness
-
-    // groupBy implementation stringifies keys :(
     return shipIntents
         .map(({ship, intents}) => {
             intents.sort((a, b) => b.score - a.score);
