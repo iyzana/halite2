@@ -74,6 +74,10 @@ class Ship extends Entity {
         return this._params.weaponCooldown;
     }
 
+    get health() {
+        return this._params.health;
+    }
+
     /**
      * return {x, y} point that is <delta> distance before target
      * @param {{x, y}|Entity} target

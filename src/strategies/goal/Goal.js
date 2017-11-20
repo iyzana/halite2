@@ -2,6 +2,7 @@ const log = require('../../hlt/Log');
 const DockingGoal = require('./DockingGoal');
 const AttackGoal = require('./AttackGoal');
 const DefenseGoal = require('./DefenseGoal');
+const KamikazeGoal = require('./KamikazeGoal');
 const ShipIntents = require('./ShipIntents');
 const GoalIntent = require('./GoalIntent');
 const Geometry = require("../../hlt/Geometry");
@@ -30,7 +31,9 @@ function identifyGoals(gameMap) {
 
     const attackGoals = gameMap.enemyShips.map(ship => new AttackGoal(gameMap, ship));
 
-    return [...planetGoals, ...defenseGoals, ...attackGoals];
+    const kamikazeGoals = gameMap.myShips.map(ship => new KamikazeGoal(gameMap, ship));
+
+    return [...planetGoals, ...defenseGoals, ...attackGoals, ...kamikazeGoals];
 }
 
 function rateGoals(gameMap, goals) {
@@ -60,6 +63,8 @@ function rateGoals(gameMap, goals) {
             } else {
                 goal.score = 1.04;
             }
+        } else if (goal instanceof KamikazeGoal) {
+            goal.score = 2;
         }
     });
 
