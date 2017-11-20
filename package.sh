@@ -11,5 +11,6 @@ folder="${folder}v$number"
 
 cp -r src ${folder}
 cd ${folder}
+sed -i "s#logFile\.write#// logFile.write#g" hlt/Log.js
 7z a "succcubbus-v$number.zip" *
 sed -i "s/succcubbus/succcubbus-v$number/" MyBot.js
