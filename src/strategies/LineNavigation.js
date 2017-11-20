@@ -11,10 +11,11 @@ const log = require('../hlt/Log');
  * @param ship ship to navigate
  * @param to location to go to
  * @param ignore some entity to ignore while navigation
+ * @param finalTo final target retained throughout recursion
  * @param depth search depth
  * @returns {{speed: number, angle: number}}
  */
-function findPath(gameMap, ship, to, ignore, finalTo, depth) {
+function findPath(gameMap, ship, to, finalTo, depth) {
     if (!depth) {
         depth = 0;
         finalTo = to;
@@ -32,7 +33,8 @@ function findPath(gameMap, ship, to, ignore, finalTo, depth) {
     log.log("discrete angled to: [" + to.x + "," + to.y + "]");
 
     const allShips = gameMap.allShips
-        .filter(s => s.id !== ship.id && (!ignore || s.id !== ignore.id));
+        .filter(s => !s.isUndocked() || Geometry.distance(ship, s) <= 15)
+        .filter(s => s.id !== ship.id);
 
     let obstacles = obstaclesBetween(gameMap.planets, ship, to).concat(obstaclesBetween(allShips, ship, to));
 
@@ -40,14 +42,14 @@ function findPath(gameMap, ship, to, ignore, finalTo, depth) {
         log.log(obstacles.length + " obstacles");
 
         // find closest obstacle
-        obstacles.sort((a, b) => Geometry.distance(ship, a) - Geometry.distance(ship, b));
+        obstacles.sort((a, b) => Geometry.distance(ship, b) - Geometry.distance(ship, a));
 
         const obstacle = obstacles[0];
 
         log.log("avoiding obstacle " + obstacle);
 
         const angle = Geometry.angleInRad(ship, to);
-        const escapeLength = obstacle.radius + 0.52;
+        const escapeLength = obstacle.radius + 0.55;
 
         log.log("angle: " + angle);
         log.log("length: " + escapeLength);
@@ -61,36 +63,21 @@ function findPath(gameMap, ship, to, ignore, finalTo, depth) {
         let distanceB = Geometry.distance(ship, escapePointB);
 
         let escapePoint = distanceA < distanceB ? escapePointA : escapePointB;
-
-        // find speed along escapePoint line, which gets us closest to the target
-        for (let i = 1; i <= 7; i++) {
-            let consideredEscapePoint = Geometry.reduceEnd(ship, escapePoint, -1);
-            if (Geometry.distance(consideredEscapePoint, finalTo) < Geometry.distance(escapePoint, finalTo) ||
-                Geometry.distance(consideredEscapePoint, to) < Geometry.distance(escapePoint, to))
-                escapePoint = consideredEscapePoint;
-        }
-
+        escapePoint = findNearestEscapePoint(escapePoint, ship, finalTo, to);
 
         // log.log("escapePointA: " + JSON.stringify(escapePointA));
         // log.log("escapePointB: " + JSON.stringify(escapePointB));
         log.log("escapePoint: " + JSON.stringify(escapePoint));
 
-        const result = findPath(gameMap, ship, escapePoint, ignore, finalTo, depth + 1);
+        const result = findPath(gameMap, ship, escapePoint, finalTo, depth + 1);
 
         if (!result) {
             escapePoint = distanceA >= distanceB ? escapePointA : escapePointB;
-
-            // find speed along escapePoint line, which gets us closest to the target
-            for (let i = 1; i <= 7; i++) {
-                let consideredEscapePoint = Geometry.reduceEnd(ship, escapePoint, -1);
-                if (Geometry.distance(consideredEscapePoint, finalTo) < Geometry.distance(escapePoint, finalTo) ||
-                    Geometry.distance(consideredEscapePoint, to) < Geometry.distance(escapePoint, to))
-                    escapePoint = consideredEscapePoint;
-            }
+            escapePoint = findNearestEscapePoint(escapePoint, ship, finalTo, to);
 
             log.log("switched escapePoint: " + JSON.stringify(escapePoint));
 
-            const result = findPath(gameMap, ship, escapePoint, ignore, finalTo, depth + 1);
+            const result = findPath(gameMap, ship, escapePoint, finalTo, depth + 1);
 
             if (!result && depth === 0)
                 return {speed: 0, angle: 0};
@@ -109,6 +96,19 @@ function findPath(gameMap, ship, to, ignore, finalTo, depth) {
     log.log(">" + speed + " ø" + angle);
 
     return {speed, angle};
+}
+
+function findNearestEscapePoint(escapePoint, ship, finalTo, to) {
+    let bestEscapePoint = escapePoint;
+
+    // find speed along escapePoint line, which gets the ship closest to the target
+    for (let i = 1; i <= 7; i++) {
+        let consideredEscapePoint = Geometry.reduceEnd(ship, escapePoint, -i);
+        if (Geometry.distance(consideredEscapePoint, finalTo) < Geometry.distance(bestEscapePoint, finalTo) ||
+            Geometry.distance(consideredEscapePoint, to) < Geometry.distance(bestEscapePoint, to))
+            bestEscapePoint = consideredEscapePoint;
+    }
+    return bestEscapePoint;
 }
 
 function obstaclesBetween(obstacles, from, to) {
