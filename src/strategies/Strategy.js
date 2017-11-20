@@ -63,7 +63,7 @@ function strategy(gameMap) {
     //         return intent.getAction(gameMap, ship);
     //     });
 
-    if(previousGameMap) {
+    if (previousGameMap) {
         gameMap.previous = previousGameMap;
     } else {
         gameMap.previous = gameMap;
@@ -78,13 +78,15 @@ function strategy(gameMap) {
         log.log("1 thrust " + thrust.ship + " => >" + thrust.speed + " ø" + thrust.angle)
     });
 
-    thrusts.forEach(current => {
-        alignSimilarAngles(current, thrusts);
+    for (let i = 0; i < 3; i++) {
+        thrusts.forEach(current => {
+            alignSimilarAngles(current, thrusts);
 
-        resolveDestinationConflicts(current, thrusts);
+            resolveDestinationConflicts(current, thrusts);
 
-        resolveCollisions(current, thrusts);
-    });
+            resolveCollisions(current, thrusts);
+        });
+    }
 
     thrusts.forEach(thrust => {
         log.log("2 thrust " + thrust.ship + " => >" + thrust.speed + " ø" + thrust.angle)
@@ -162,7 +164,7 @@ function alignSimilarAngles(current, thrusts) {
         similarThrusts
             .map(thrust2 => Geometry.angleBetween(current.angle, thrust2.angle)) // make relative to current to avoid 1, 359 issue
             .reduce((prev, cur) => prev + cur, 0) / similarThrusts.length;
-    const avgAngle = current.angle + avgDifference;
+    const avgAngle = (current.angle + avgDifference + 360) % 360;
 
     log.log("align angles " + similarThrusts.map(t => t.ship) + " to " + avgAngle);
 
@@ -199,7 +201,7 @@ function resolveCollisions(current, thrusts) {
         .forEach(thrust2 => {
             const t1 = Simulation.toVector(current.speed, current.angle);
             const t2 = Simulation.toVector(thrust2.speed, thrust2.angle);
-            const {collision} = Simulation.collisionTime(constants.SHIP_RADIUS*2, current.ship, thrust2.ship, t1, t2);
+            const {collision} = Simulation.collisionTime(constants.SHIP_RADIUS * 2, current.ship, thrust2.ship, t1, t2);
 
             if (collision) {
                 log.log(`swapping: ${current.ship.id} <> ${thrust2.ship.id}`);

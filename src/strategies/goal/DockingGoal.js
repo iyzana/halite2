@@ -51,7 +51,7 @@ class DockingGoal {
     }
 
     static navigatePlanet(gameMap, ship, planet) {
-        const to = Geometry.reduceEnd(ship, planet, planet.radius + constants.DOCK_RADIUS - 1);
+        const to = Geometry.reduceEnd(ship, planet, planet.radius + constants.SHIP_RADIUS + 0.05);
         const {speed, angle} = findPath(gameMap, ship, to);
         return new ActionThrust(ship, speed, angle);
     }

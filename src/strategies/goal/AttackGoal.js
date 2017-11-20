@@ -1,6 +1,7 @@
 const ActionThrust = require("../ActionThrust");
 const Geometry = require("../../hlt/Geometry");
 const Simulation = require("../Simulation");
+const constants = require("../../hlt/Constants");
 const GoalIntent = require('./GoalIntent');
 const {findPath} = require("../LineNavigation");
 
@@ -40,7 +41,8 @@ class AttackGoal {
     }
 
     static navigateAttack(gameMap, ship, enemy) {
-        const {speed, angle} = findPath(gameMap, ship, enemy);
+        const to = Geometry.reduceEnd(ship, enemy, constants.WEAPON_RADIUS - 1);
+        const {speed, angle} = findPath(gameMap, ship, to);
         return new ActionThrust(ship, speed, angle);
     }
 }

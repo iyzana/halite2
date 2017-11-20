@@ -125,7 +125,7 @@ class Geometry {
         const a = dx ** 2 + dy ** 2;
 
         if (a === 0.0) {
-            return Geometry.distance(start, end) <= (circle.radius + fudge);
+            return Geometry.distance(start, circle) <= (circle.radius + fudge);
         }
 
         const b = -2 * (start.x ** 2 - start.x * end.x - start.x * circle.x + end.x * circle.x +

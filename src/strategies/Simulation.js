@@ -13,9 +13,13 @@ class Simulation {
      * @returns {{x: number, y: number}}
      */
     static toVector(speed, angle) {
+        /*
+        additional value is required otherwise the resulting vector sometimes has an value of .99999999999999
+        which will be floored afterwards, which would lead to unwanted behaviours.
+         */
         return {
-            x: Math.floor(speed) * Math.cos(Geometry.toRad(Math.floor(angle))),
-            y: Math.floor(speed) * Math.sin(Geometry.toRad(Math.floor(angle)))
+            x: (Math.floor(speed) + 0.00000000001) * Math.cos(Geometry.toRad(Math.floor(angle) + 0.00000000001)),
+            y: (Math.floor(speed) + 0.00000000001) * Math.sin(Geometry.toRad(Math.floor(angle) + 0.00000000001))
         }
     }
 
