@@ -20,7 +20,7 @@ function findPath(gameMap, ship, to, finalTo, depth) {
         depth = 0;
         finalTo = to;
     }
-    if (depth >= 10)
+    if (depth >= 6)
         return undefined;
 
     log.log("path from " + ship + " to [" + to.x + "," + to.y + "]");
