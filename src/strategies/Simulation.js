@@ -40,6 +40,48 @@ class Simulation {
         }
     }
 
+    static insideWall(gameMap, pos) {
+        return pos.x < 0 || pos.y < 0 || pos.x >= gameMap.width || pos.y >= gameMap.height;
+    }
+
+    static getWallEscapes(gameMap, pos) {
+        if (!Simulation.insideWall(gameMap, pos))
+            return undefined;
+
+        const sx = pos.x;
+        const sy = pos.y;
+
+        // walls from top clockwise
+        for (let i = 0; i < 4; i++) {
+            const rx = (i + 1) % 2;
+            const ry = i % 2;
+
+            const ox = i === 1 ? gameMap.width : 0;
+            const oy = i === 2 ? gameMap.height : 0;
+
+            const a = rx ** 2 + ry ** 2;
+            const b = rx * (ox - sx) + ry * (oy - sy);
+            const e = b ** 2 - a * ((ox + sx) * (oy + sy) - 49);
+
+            if (e < 0)
+                continue;
+
+            const root = 2 * Math.sqrt(e);
+
+            const d1 = (-b + root) / a;
+            const d2 = (-b - root) / a;
+
+            const pos1 = {
+                x: rx * d1 + ox,
+                y: ry * d1 + oy
+            };
+            const pos2 = {
+                x: rx * d2 + ox,
+                y: ry * d2 + oy
+            };
+        }
+    }
+
     /**
      * find the entity in entities which is nearest to start.
      * the start itself will be excluded from the list if it is present.
