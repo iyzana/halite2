@@ -3,11 +3,7 @@ const log = require('../hlt/Log');
 const Geometry = require('../hlt/Geometry');
 const Simulation = require('./Simulation');
 const constants = require('../hlt/Constants');
-const {spread, weightPlanets} = require('./Spread');
-const {attack} = require('./Attack');
-const ShipIntents = require('./goal/ShipIntents');
 const ActionThrust = require('./ActionThrust');
-const ActionDock = require('./ActionDock');
 const {getActions} = require('./goal/Goal');
 
 require('./ArrayHelper');
