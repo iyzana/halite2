@@ -24,10 +24,7 @@ class DockingGoal {
                     return new GoalIntent(ship, this, 0);
                 }
 
-                // todo: put in global variable
-                const maxDistance = Math.sqrt(Math.pow(gameMap.width, 2) + Math.pow(gameMap.height, 2));
-
-                let score = 1 - Geometry.distance(ship, this.planet) / maxDistance;
+                let score = 1 - Geometry.distance(ship, this.planet) / gameMap.maxDistance;
                 return new GoalIntent(ship, this, score);
             });
     }

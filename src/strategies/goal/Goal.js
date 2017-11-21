@@ -39,7 +39,7 @@ function identifyGoals(gameMap) {
 }
 
 function rateGoals(gameMap, goals) {
-    const maxDistance = Math.sqrt(Math.pow(gameMap.width, 2) + Math.pow(gameMap.height, 2)) / 2;
+    const maxDistance = gameMap.maxDistance / 2;
     const populatedPlanetsPct = gameMap.planets.filter(p => p.isOwned()).length / gameMap.planets.length;
 
     goals.forEach(goal => {

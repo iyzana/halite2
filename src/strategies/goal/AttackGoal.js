@@ -20,9 +20,7 @@ class AttackGoal {
         return gameMap.myShips
             .filter(ship => ship.isUndocked())
             .map(ship => {
-                const maxDistance = Math.sqrt(Math.pow(gameMap.width, 2) + Math.pow(gameMap.height, 2));
-
-                let score = 1 - Geometry.distance(ship, this.enemy) / maxDistance;
+                let score = 1 - Geometry.distance(ship, this.enemy) / gameMap.maxDistance;
                 return new GoalIntent(ship, this, score);
             })
     }
@@ -47,12 +45,11 @@ class AttackGoal {
             const theirPos = Geometry.averagePos(enemies);
 
             //only running away when close
-            if(Geometry.distance(closestShip, theirPos) < constants.MAX_SPEED * 2 + constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2) {
-                const vector = {
+            if (Geometry.distance(closestShip, theirPos) < constants.MAX_SPEED * 2 + constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2) {
+                const vector = Geometry.normalizeVector({
                     x: closestShip.x - theirPos.x,
                     y: closestShip.y - theirPos.y,
-                };
-
+                });
                 const length = Math.sqrt(Math.pow(vector.x, 2) + Math.pow(vector.y, 2));
                 vector.x /= length;
                 vector.y /= length;

@@ -126,6 +126,13 @@ class Geometry {
         return pos;
     }
 
+    static normalizeVector(vector) {
+        const length = Math.sqrt(Math.pow(vector.x, 2) + Math.pow(vector.y, 2));
+        vector.x /= length;
+        vector.y /= length;
+        return vector;
+    }
+
     /**
      * Test whether a line segment and circle intersect.
      * @param {object} start object with {x, y} properties

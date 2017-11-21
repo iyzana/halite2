@@ -114,6 +114,16 @@ class Simulation {
         return (72 - planet.currentProduction) / this.productionWithShips(planet.numberOfDockedShips);
     }
 
+    static shipsInTurns(planet, turnsLeft) {
+        const tillNextShip = Simulation.turnsTillNextShip(planet);
+        if (tillNextShip > turnsLeft)
+            return 0;
+        if (tillNextShip === turnsLeft)
+            return 1;
+        turnsLeft -= tillNextShip;
+        return 1 + Math.floor(this.productionWithShips(planet.numberOfPlayers) * turnsLeft / 72);
+    }
+
     static turnsTillFullHeuristic(planet) {
         let ships = (planet.numberOfDockedShips * 2 + planet.dockingSpots) / 3;
 
