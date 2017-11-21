@@ -80,7 +80,7 @@ class AttackGoal {
     }
 
     static navigateAttack(gameMap, ship, enemy) {
-        const to = Geometry.reduceEnd(ship, enemy, constants.WEAPON_RADIUS - 1);
+        const to = Geometry.reduceEnd(ship, enemy, constants.WEAPON_RADIUS + constants.SHIP_RADIUS - 1);
         const {speed, angle} = findPath(gameMap, ship, to);
         return new ActionThrust(ship, speed, angle);
     }
