@@ -2,7 +2,7 @@ const log = require('../hlt/Log');
 
 const ActionThrust = require('./ActionThrust');
 const {getActions} = require('./goal/Goal');
-const {alignSimilarAngles, resolveDestinationConflicts, resolveCollisions} = require("./CollisionAvoidance");
+const {resolveWallCollisions, alignSimilarAngles, resolveDestinationConflicts, resolveCollisions} = require("./CollisionAvoidance");
 
 require('./ArrayHelper');
 
@@ -19,7 +19,7 @@ function strategy(gameMap) {
 
     const actions = getActions(gameMap);
 
-    postprocessActions(actions);
+    postprocessActions(gameMap, actions);
 
     return actions.map(action => action.getCommand());
 }
@@ -36,7 +36,7 @@ function preprocessMap(gameMap) {
     gameMap.maxDistance = Math.sqrt(Math.pow(gameMap.width, 2) + Math.pow(gameMap.height, 2));
 }
 
-function postprocessActions(actions) {
+function postprocessActions(gameMap, actions) {
     const thrusts = actions.filter(action => action instanceof ActionThrust);
 
     thrusts.forEach(thrust => {
@@ -45,6 +45,8 @@ function postprocessActions(actions) {
 
     for (let i = 0; i < 3; i++) {
         thrusts.forEach(current => {
+            resolveWallCollisions(gameMap, current);
+
             alignSimilarAngles(current, thrusts);
 
             resolveDestinationConflicts(current, thrusts);

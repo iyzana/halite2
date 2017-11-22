@@ -44,42 +44,66 @@ class Simulation {
         return pos.x < 0 || pos.y < 0 || pos.x >= gameMap.width || pos.y >= gameMap.height;
     }
 
-    static getWallEscapes(gameMap, pos) {
-        if (!Simulation.insideWall(gameMap, pos))
-            return undefined;
+    static getWallEscape(gameMap, pos, target, thrust) {
+        if (!Simulation.insideWall(gameMap, target))
+            return target;
 
-        const sx = pos.x;
-        const sy = pos.y;
+        const rs = [{x: 1, y: 0}, {x: 0, y: 1}, {x: -1, y: 0}, {x: 0, y: -1}];
 
         // walls from top clockwise
+        let wallEscapes = [];
         for (let i = 0; i < 4; i++) {
-            const rx = (i + 1) % 2;
-            const ry = i % 2;
-
-            const ox = i === 1 ? gameMap.width : 0;
-            const oy = i === 2 ? gameMap.height : 0;
-
-            const a = rx ** 2 + ry ** 2;
-            const b = rx * (ox - sx) + ry * (oy - sy);
-            const e = b ** 2 - a * ((ox + sx) * (oy + sy) - 49);
-
-            if (e < 0)
-                continue;
-
-            const root = 2 * Math.sqrt(e);
-
-            const d1 = (-b + root) / a;
-            const d2 = (-b - root) / a;
-
-            const pos1 = {
-                x: rx * d1 + ox,
-                y: ry * d1 + oy
+            const o = {
+                x: i === 1 ? gameMap.width : 0,
+                y: i === 2 ? gameMap.height : 0,
             };
-            const pos2 = {
-                x: rx * d2 + ox,
-                y: ry * d2 + oy
-            };
+
+            wallEscapes = wallEscapes.concat(Simulation.getWallEscapesInternal(rs[i], o, pos, thrust));
         }
+        if (wallEscapes.length === 2) {
+            const [pos1, pos2] = wallEscapes;
+            log.log(`pos: ${pos}, target: ${target.x},${target.y}, escapes: [${pos1.x},${pos1.y}],[${pos2.x},${pos2.y}]]`);
+            return Geometry.distance(target, pos1) < Geometry.distance(target, pos2) ? pos1 : pos2;
+        }
+        log.log('corner case: ' + wallEscapes.length);
+        log.log(`pos: ${pos}, target: ${target.x},${target.y}, thrust: ${thrust}`);
+        wallEscapes.forEach(e => log.log(`wallEscapes: [${e.x},${e.y}]`));
+        const [pos1, pos2] = wallEscapes
+            .filter(escape => !Simulation.insideWall(gameMap, escape));
+
+        if(pos1 === undefined || pos2 === undefined) {
+            log.log('escape points inside wall!!');
+            return {x:1,y:0};
+        }
+
+        log.log(`pos: ${pos}, target: ${target.x},${target.y}, escapes: [[${pos1.x},${pos1.y}],[${pos2.x},${pos2.y}]]`);
+        return Geometry.distance(target, pos1) < Geometry.distance(target, pos2) ? pos1 : pos2;
+    }
+
+    static getWallEscapesInternal(r, o, s, t) {
+        const a = r.x ** 2 + r.y ** 2;
+        const b = r.x * (o.x - s.x) + r.y * (o.y - s.y);
+        const e = b ** 2 - a * ((o.x - s.x) ** 2 + (o.y - s.y) ** 2 - t ** 2);
+
+        log.log(`a: ${a}, b: ${b}, e: ${e}`);
+
+        if (e < 0)
+            return [];
+
+        const root = 2 * Math.sqrt(e);
+
+        const d1 = (-b + root) / a;
+        const d2 = (-b - root) / a;
+
+        log.log(`d1: ${d1}, d2: ${d2}`);
+
+        return [{
+            x: r.x * d1 + o.x - 2 * r.y,
+            y: r.y * d1 + o.y + 2 * r.x
+        }, {
+            x: r.x * d2 + o.x - 2 * r.y,
+            y: r.y * d2 + o.y + 2 * r.x
+        }];
     }
 
     /**

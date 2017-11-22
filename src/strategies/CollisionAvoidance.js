@@ -3,6 +3,15 @@ const Geometry = require('../hlt/Geometry');
 const Simulation = require('./Simulation');
 const constants = require('../hlt/Constants');
 
+function resolveWallCollisions(gameMap, thrust) {
+    const position = Simulation.positionNextTick(thrust.ship, thrust.speed, thrust.angle);
+    if(Simulation.insideWall(gameMap, position)) {
+        const escape = Simulation.getWallEscape(gameMap, thrust.ship, position, thrust.speed);
+        thrust.speed = Math.min(7, Geometry.distance(thrust.ship, escape));
+        thrust.angle = Geometry.angleInDegree(thrust.ship, escape);
+    }
+}
+
 /**
  * Find all thrusts that have a similar angle, but would intersect with the current thrust.
  * For these thrusts take the average angle and apply it to them.
@@ -86,4 +95,4 @@ function resolveCollisions(current, thrusts) {
         })
 }
 
-module.exports = {alignSimilarAngles, resolveDestinationConflicts, resolveCollisions};
+module.exports = {resolveWallCollisions, alignSimilarAngles, resolveDestinationConflicts, resolveCollisions};
