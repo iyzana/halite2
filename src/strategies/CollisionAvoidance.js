@@ -59,7 +59,7 @@ function resolveDestinationConflicts(current, thrusts) {
 function resolveCollisions(current, thrusts) {
     thrusts
         .filter(thrust2 => current.ship !== thrust2.ship)
-        .filter(thrust2 => Geometry.distance(current.ship, thrust2.ship) <= constants.MAX_SPEED * 2)
+        .filter(thrust2 => Geometry.distance(current.ship, thrust2.ship) <= constants.MAX_SPEED * 2 + constants.SHIP_RADIUS * 2)
         .forEach(thrust2 => {
             const t1 = Simulation.toVector(current.speed, current.angle);
             const t2 = Simulation.toVector(thrust2.speed, thrust2.angle);
