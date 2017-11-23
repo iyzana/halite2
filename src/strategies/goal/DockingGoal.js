@@ -12,6 +12,9 @@ class DockingGoal {
     }
 
     shipRequests(gameMap) {
+        const sortedPlanets = gameMap.planets.sort((a, b) => a.radius - b.radius);
+        const smallestPlanet = sortedPlanets[0];
+        const biggestPlanet = sortedPlanets[sortedPlanets.length - 1];
         const turnsTillNewShip = Simulation.turnsTillNextShip(this.planet);
 
         return gameMap.myShips
@@ -24,8 +27,10 @@ class DockingGoal {
                     return new GoalIntent(ship, this, 0);
                 }
 
-                let score = 1 - Geometry.distance(ship, this.planet) / gameMap.maxDistance;
-                return new GoalIntent(ship, this, score);
+                const distanceScore = 1 - Geometry.distance(ship, this.planet) / gameMap.maxDistance;
+                const radiusScore = (this.planet.radius - smallestPlanet.radius) / (biggestPlanet.radius - smallestPlanet.radius);
+                const densityScore = 0;
+                return new GoalIntent(ship, this, distanceScore);
             });
     }
 
