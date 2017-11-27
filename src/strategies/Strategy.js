@@ -1,4 +1,5 @@
 const log = require('../hlt/Log');
+const Geometry = require('../hlt/Geometry');
 
 const ActionThrust = require('./ActionThrust');
 const {getActions} = require('./goal/Goal');
@@ -34,6 +35,41 @@ function preprocessMap(gameMap) {
     previousGameMap = gameMap;
 
     gameMap.maxDistance = Math.sqrt(Math.pow(gameMap.width, 2) + Math.pow(gameMap.height, 2));
+
+    if(!gameMap.planetHeuristics || gameMap.planetHeuristics.planetsLength !== gameMap.planets.length)
+        computePlanetHeuristics(gameMap);
+}
+
+function computePlanetHeuristics(gameMap) {
+    gameMap.planetHeuristics = {planetsLength: gameMap.planets.length};
+
+    const sortedPlanets = gameMap.planets.sort((a, b) => a.radius - b.radius);
+    gameMap.planetHeuristics.smallestRadius = sortedPlanets[0].radius;
+    gameMap.planetHeuristics.biggestRadius = sortedPlanets[sortedPlanets.length - 1].radius;
+
+    const planetDistances = [];
+
+    for(let i = 0; i < gameMap.planets.length; i++)
+        planetDistances.push([]);
+
+    //causes double computation but is more readable
+    gameMap.planets.forEach(p1 => {
+        gameMap.planets.forEach(p2 => {
+            const distance = Geometry.distance(p1, p2);
+            planetDistances[p1.id][p2.id] = distance;
+            planetDistances[p2.id][p1.id] = distance;
+        });
+    });
+
+    planetDistances.forEach(planetDistance => {
+        planetDistance.sum = planetDistance.reduce((acc, cur) => acc + cur ** 2)
+    });
+
+    const sortedPlanetDistances = planetDistances.sort((a, b) => a.sum - b.sum);
+
+    gameMap.planetHeuristics.planetDistances = planetDistances;
+    gameMap.planetHeuristics.smallestDistances = sortedPlanetDistances[0].sum;
+    gameMap.planetHeuristics.biggestDistances = sortedPlanetDistances[sortedPlanetDistances.length - 1].sum;
 }
 
 function postprocessActions(gameMap, actions) {
