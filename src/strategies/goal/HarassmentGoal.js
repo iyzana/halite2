@@ -18,7 +18,12 @@ class HarassmentGoal {
 
         const potentialShips = gameMap.myShips.filter(ship => ship.isUndocked());
 
-        const theChosenOne = Simulation.nearestEntity(potentialShips, Geometry.averagePos(dockedEnemies));
+        if (dockedEnemies.length === 0 || potentialShips.length === 0)
+            return [];
+
+        const {entity: theChosenOne} = Simulation.nearestEntity(potentialShips, Geometry.averagePos(dockedEnemies));
+
+        log.log("requesting ship: " + theChosenOne);
 
         return [new GoalIntent(theChosenOne, this, 1)];
     }
@@ -29,34 +34,47 @@ class HarassmentGoal {
 
     getShipCommands(gameMap, ships) {
         const ship = ships[0];
+        log.log("harassing with ship: " + ship);
         const dockedEnemies = gameMap
             .playerShips(this.player)
             .filter(ship => ship.isDocked() || ship.isDocking());
 
-       const sortedTargets = dockedEnemies
-           .map(e => [Geometry.distance(e, ship), e])
-           .sort((a, b) => a[0] - b[0])
-           .map(e => e[1]);
+        const sortedTargets = dockedEnemies
+            .map(e => [Geometry.distance(e, ship), e])
+            .sort((a, b) => a[0] - b[0])
+            .map(e => e[1]);
 
-       const target = sortedTargets[0];
+        const target = sortedTargets[0];
 
-       const enemies = gameMap.enemyShips
-           .filter(enemy => enemy.isUndocked())
-           .filter(enemy => Geometry.distance(enemy, ship) < constants.WEAPON_RADIUS + 2*constants.SHIP_RADIUS + 1);
+        log.log("target is: " + target);
+        if (!target || !ship) {
+            return [];
+        }
 
-       const obstacles = enemies
+        const enemies = gameMap.enemyShips
+            .filter(enemy => enemy.isUndocked())
+            .filter(enemy => Geometry.distance(enemy, ship) < constants.WEAPON_RADIUS * 2 + 2 * constants.SHIP_RADIUS + 1);
+
+        const obstaclesNextTurn = enemies
             .map(enemy => {
-               const speed = Math.min(7, Geometry.distance(enemy, ship));
-               const angle = Geometry.angleInDegree(enemy, ship);
+                const speed = Math.min(7, Geometry.distance(enemy, ship));
+                const angle = Geometry.angleInDegree(enemy, ship);
 
-               const nextPos = Simulation.positionNextTick(enemy, speed, angle);
-               nextPos.radius = constants.WEAPON_RADIUS + constants.SHIP_RADIUS;
-               return nextPos;
-           });
+                const nextPos = Simulation.positionNextTick(enemy, speed, angle);
+                nextPos.radius = constants.WEAPON_RADIUS + constants.SHIP_RADIUS;
+                return nextPos;
+            });
+
+        const obstaclesThisTurn = enemies.map(enemy => ({x: enemy.x, y: enemy.y, radius: constants.WEAPON_RADIUS + constants.SHIP_RADIUS}));
+
+        const obstacles = obstaclesThisTurn.concat(obstaclesNextTurn);
 
         const action = findPath(gameMap, ship, target, target, 0, obstacles);
 
-        if (!action) {
+        const attackingEnemies = enemies.filter(enemy => Geometry.distance(enemy, ship) < constants.WEAPON_RADIUS + 2 * constants.SHIP_RADIUS + 1);
+
+        if (!action || attackingEnemies.length > 1) {
+            log.log("retreating");
             const theirPos = Geometry.averagePos(enemies);
 
             const vector = Geometry.normalizeVector({
@@ -70,10 +88,10 @@ class HarassmentGoal {
             };
 
             const {speed, angle} = findPath(gameMap, ship, retreatPoint);
-            return new ActionThrust(ship, speed, angle);
+            return [new ActionThrust(ship, speed, angle)];
         }
 
-        return new ActionThrust(ship, speed, angle);
+        return [new ActionThrust(ship, action.speed, action.angle)];
     }
 
     toString() {

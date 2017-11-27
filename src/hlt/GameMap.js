@@ -34,6 +34,10 @@ class GameMap {
         this._playerIds.push(playerId);
     }
 
+    get playerIds() {
+        return this._playerIds;
+    }
+
     /**
      * add ships to a specified player. only call this method explicitly to setup a game state for your unit tests.
      * engine will call this method on your behalf during a real game.
