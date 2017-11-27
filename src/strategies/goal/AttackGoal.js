@@ -50,9 +50,6 @@ class AttackGoal {
                     x: closestShip.x - theirPos.x,
                     y: closestShip.y - theirPos.y,
                 });
-                const length = Math.sqrt(Math.pow(vector.x, 2) + Math.pow(vector.y, 2));
-                vector.x /= length;
-                vector.y /= length;
 
                 const retreatPoint = {
                     x: theirPos.x + vector.x * 19,

@@ -81,6 +81,8 @@ function rateGoals(gameMap, goals) {
             }
         } else if (goal instanceof KamikazeGoal) {
             goal.score = 2;
+        } else if (goal instanceof HarassmentGoal) {
+            goal.score = 2.1;
         }
     });
 

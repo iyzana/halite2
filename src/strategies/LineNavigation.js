@@ -15,7 +15,9 @@ const log = require('../hlt/Log');
  * @param depth search depth
  * @returns {{speed: number, angle: number}}
  */
-function findPath(gameMap, ship, to, finalTo, depth) {
+function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
+    if (!additionalObstacles)
+        additionalObstacles = [];
     if (!depth) {
         depth = 0;
         finalTo = to;
@@ -36,7 +38,7 @@ function findPath(gameMap, ship, to, finalTo, depth) {
         .filter(s => !s.isUndocked() || Geometry.distance(ship, s) <= 15)
         .filter(s => s.id !== ship.id);
 
-    let obstacles = obstaclesBetween(gameMap.planets, ship, to).concat(obstaclesBetween(allShips, ship, to));
+    let obstacles = obstaclesBetween(gameMap.planets, ship, to).concat(obstaclesBetween(allShips, ship, to)).concat(additionalObstacles);
 
     if (obstacles.length) {
         log.log(obstacles.length + " obstacles");
