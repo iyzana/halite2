@@ -44,16 +44,30 @@ function rateGoals(gameMap, goals) {
 
     goals.forEach(goal => {
         if (goal instanceof DockingGoal) {
-            const distance = Geometry.distance(goal.planet, {x: gameMap.width / 2, y: gameMap.height / 2});
-            const distPct = gameMap.numberOfPlayers === 4 && populatedPlanetsPct <= 0.6 ? distance / maxDistance : 0.5;
-            goal.score = 0.98 + (distPct - 0.5) * 0.1;
+            goal.score = 0.98;
 
-            if (gameMap.numberOfPlayers === 4 && populatedPlanetsPct <= 0.55) {
+            const distance = Geometry.distance(goal.planet, {x: gameMap.width / 2, y: gameMap.height / 2});
+
+            const heuristic = gameMap.planetHeuristics;
+            const radiusDifference = (heuristic.biggestRadius - heuristic.smallestRadius) || heuristic.biggestRadius;
+            const radiusScore = (goal.planet.radius - heuristic.smallestRadius) / radiusDifference;
+
+            const distanceDifference = (heuristic.biggestDistances - heuristic.smallestDistances) || heuristic.biggestDistances;
+            const densityScore = (heuristic.planetDistances[goal.planet.id].sum - heuristic.smallestDistances) / distanceDifference;
+
+            if (gameMap.numberOfPlayers === 4 && populatedPlanetsPct <= 0.6) {
+                goal.score += (distance / maxDistance - 0.5) * 0.1;
+
                 const nearestOpponent = Simulation.nearestEntity(gameMap.enemyShips, goal.planet).dist;
                 if (nearestOpponent < 15)
                     goal.score -= 0.025;
                 else
                     goal.score += 0.025;
+
+                goal.score += radiusScore * 0.002 - 0.001;
+                goal.score += densityScore * 0.02 - 0.01;
+            } else if (gameMap.numberOfPlayers === 2) {
+                goal.score += densityScore * 0.01 - 0.005;
             }
         } else if (goal instanceof DefenseGoal) {
             goal.score = 1;

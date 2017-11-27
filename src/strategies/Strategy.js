@@ -47,29 +47,40 @@ function computePlanetHeuristics(gameMap) {
     gameMap.planetHeuristics.smallestRadius = sortedPlanets[0].radius;
     gameMap.planetHeuristics.biggestRadius = sortedPlanets[sortedPlanets.length - 1].radius;
 
-    const planetDistances = [];
+    const planetDistances = {};
 
-    for(let i = 0; i < gameMap.planets.length; i++)
-        planetDistances.push([]);
+    // could be sparse
+    for (let planet of gameMap.planets) {
+        planetDistances[planet.id] = {};
+        planetDistances[planet.id].distanceTo = {};
+    }
 
     //causes double computation but is more readable
     gameMap.planets.forEach(p1 => {
         gameMap.planets.forEach(p2 => {
             const distance = Geometry.distance(p1, p2);
-            planetDistances[p1.id][p2.id] = distance;
-            planetDistances[p2.id][p1.id] = distance;
+            planetDistances[p1.id].distanceTo[p2.id] = distance;
+            planetDistances[p2.id].distanceTo[p1.id] = distance;
         });
     });
 
-    planetDistances.forEach(planetDistance => {
-        planetDistance.sum = planetDistance.reduce((acc, cur) => acc + cur ** 2)
+    Object.values(planetDistances).forEach(planetDistance => {
+        planetDistance.sum = Object.values(planetDistance.distanceTo).reduce((acc, cur) => acc + cur ** 2)
     });
 
-    const sortedPlanetDistances = planetDistances.sort((a, b) => a.sum - b.sum);
-
     gameMap.planetHeuristics.planetDistances = planetDistances;
-    gameMap.planetHeuristics.smallestDistances = sortedPlanetDistances[0].sum;
-    gameMap.planetHeuristics.biggestDistances = sortedPlanetDistances[sortedPlanetDistances.length - 1].sum;
+
+    gameMap.planetHeuristics.smallestDistances = Infinity;
+    gameMap.planetHeuristics.biggestDistances = -Infinity;
+
+    Object.values(planetDistances)
+        .map(planetDistance => planetDistance.sum)
+        .forEach(sum => {
+            if (sum < gameMap.planetHeuristics.smallestDistances)
+                gameMap.planetHeuristics.smallestDistances = sum;
+            if (sum > gameMap.planetHeuristics.biggestDistances)
+                gameMap.planetHeuristics.biggestDistances = sum;
+        });
 }
 
 function postprocessActions(gameMap, actions) {

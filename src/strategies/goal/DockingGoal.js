@@ -24,16 +24,7 @@ class DockingGoal {
                     return new GoalIntent(ship, this, 0);
                 }
 
-                const distanceScore = 1 - Geometry.distance(ship, this.planet) / gameMap.maxDistance;
-                const radiusScore = (this.planet.radius - gameMap.planetHeuristics.smallestRadius) / (gameMap.planetHeuristics.biggestRadius - gameMap.planetHeuristics.smallestRadius);
-                const densityScore = 1 - (gameMap.planetHeuristics.planetDistances[this.planet.id].sum - gameMap.planetHeuristics.smallestDistances) / (gameMap.planetHeuristics.biggestDistances - gameMap.planetHeuristics.smallestDistances);
-
-                const distanceWeight = 1;
-                const radiusWeight = 1;
-                const densityWeight = 1;
-
-                const score = (distanceWeight * distanceScore + radiusWeight * radiusScore + densityWeight * densityScore) / (distanceWeight + radiusWeight + densityWeight);
-
+                const score = 1 - Geometry.distance(ship, this.planet) / gameMap.maxDistance;
                 return new GoalIntent(ship, this, score);
             });
     }
