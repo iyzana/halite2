@@ -29,8 +29,8 @@ class DockingGoal {
             });
     }
 
-    effectivenessPerShip(shipSet) {
-        return 1;
+    effectivenessPerShip(gameMap, shipSet) {
+        return this.planet.freeDockingSpots;
     }
 
     getShipCommands(gameMap, ships) {

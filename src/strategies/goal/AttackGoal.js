@@ -25,8 +25,12 @@ class AttackGoal {
             })
     }
 
-    effectivenessPerShip(shipSet) {
-        return 1;
+    effectivenessPerShip(gameMap, shipSet) {
+        const enemies = gameMap.enemyShips
+            .filter(enemy => enemy.isUndocked())
+            .filter(enemy => Geometry.distance(this.enemy, enemy) < 8);
+
+        return Math.ceil(enemies.length * 2);
     }
 
     getShipCommands(gameMap, ships) {
@@ -50,13 +54,12 @@ class AttackGoal {
                     x: closestShip.x - theirPos.x,
                     y: closestShip.y - theirPos.y,
                 });
-                const length = Math.sqrt(Math.pow(vector.x, 2) + Math.pow(vector.y, 2));
-                vector.x /= length;
-                vector.y /= length;
 
+                const escapePadding = gameMap.numberOfPlayers === 2 ? 1 : 3;
+                const escapeDistance = constants.MAX_SPEED + constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2 + escapePadding;
                 const retreatPoint = {
-                    x: theirPos.x + vector.x * 19,
-                    y: theirPos.y + vector.y * 19,
+                    x: theirPos.x + vector.x * escapeDistance,
+                    y: theirPos.y + vector.y * escapeDistance,
                 };
 
                 log.log('running away with ships: ' + ships);

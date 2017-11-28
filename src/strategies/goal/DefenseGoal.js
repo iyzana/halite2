@@ -12,7 +12,6 @@ class DefenseGoal {
     }
 
     shipRequests(gameMap) {
-
         const distances = gameMap.enemyShips
             .filter(ship => ship.isUndocked())
             .filter(ship => {
@@ -83,8 +82,8 @@ class DefenseGoal {
         });
     }
 
-    effectivenessPerShip(shipSet) {
-        return 1;
+    effectivenessPerShip(gameMap, shipSet) {
+        return 2;
     }
 
     getShipCommands(gameMap, ships) {
