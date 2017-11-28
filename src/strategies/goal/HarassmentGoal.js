@@ -12,16 +12,15 @@ class HarassmentGoal {
     }
 
     shipRequests(gameMap) {
-        const dockedEnemies = gameMap
-            .playerShips(this.player)
-            .filter(ship => ship.isDocked() || ship.isDocking());
+        const enemies = gameMap
+            .playerShips(this.player);
 
         const potentialShips = gameMap.myShips.filter(ship => ship.isUndocked());
 
-        if (dockedEnemies.length === 0 || potentialShips.length === 0)
+        if (potentialShips.length === 0)
             return [];
 
-        const {entity: theChosenOne} = Simulation.nearestEntity(potentialShips, Geometry.averagePos(dockedEnemies));
+        const {entity: theChosenOne} = Simulation.nearestEntity(potentialShips, Geometry.averagePos(enemies));
 
         log.log("requesting ship: " + theChosenOne);
 
@@ -39,12 +38,22 @@ class HarassmentGoal {
             .playerShips(this.player)
             .filter(ship => ship.isDocked() || ship.isDocking());
 
-        const target = Simulation.nearestEntity(dockedEnemies, ship).entity;
+        const sortedTargets = dockedEnemies
+            .map(e => [Geometry.distance(e, ship), e])
+            .sort((a, b) => a[0] - b[0])
+            .map(e => e[1]);
 
-        log.log("target is: " + target);
-        if (!target || !ship) {
+        let target = sortedTargets[0];
+
+        if (!ship) {
             return [];
         }
+
+        if(!target) {
+            target = Simulation.nearestEntity(gameMap.playerShips(this.player), ship).entity;
+        }
+
+        log.log("target is: " + target);
 
         const enemies = gameMap.enemyShips
             .filter(enemy => enemy.isUndocked())
