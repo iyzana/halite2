@@ -16,7 +16,7 @@ function getActions(gameMap) {
 
     const requests = calcShipRequests(gameMap, ratedGoals);
 
-    const grantedShips = magicLoop(requests);
+    const grantedShips = magicLoop(gameMap, requests);
 
     return grantedShips.flatMap(({goal, ships}) => goal.getShipCommands(gameMap, ships))
 }
@@ -108,15 +108,36 @@ function calcShipRequests(gameMap, goals) {
         .map(entry => new ShipIntents(entry.key, entry.values));
 }
 
-function magicLoop(shipIntents) {
+function magicLoop(gameMap, shipIntents) {
     // TODO: do magic stuff to assign ships to goals based on effectiveness
-    return shipIntents
-        .map(({ship, intents}) => {
-            intents.sort((a, b) => b.score - a.score);
-            return {ship, goal: intents[0].goal};
+
+    // [{goal, [shipIntents]}]
+    const grantedShips = shipIntents
+        .map((shipIntents) => {
+            shipIntents.intents.sort((a, b) => b.score - a.score);
+            return {shipIntents, goal: shipIntents.intents[0].goal};
         })
         .groupBy(entry => entry.goal)
-        .map(({key, values}) => ({goal: key, ships: values.map(entry => entry.ship)}))
+        .map(({key, values}) => ({goal: key, shipIntents: values.map(entry => entry.shipIntents)}));
+
+    grantedShips.forEach(({goal, shipIntents}) => {
+        const max = goal.effectivenessPerShip(gameMap);
+
+        if (shipIntents.length > max) {
+            shipIntents
+                .sort((a, b) => b.intents[0].score - a.intents[0].score)
+                .slice(max)
+                .forEach(shipIntent => shipIntent.intents[0].score -= .15);
+        }
+    });
+
+    return shipIntents
+        .map((shipIntents) => {
+            shipIntents.intents.sort((a, b) => b.score - a.score);
+            return {ship: shipIntents.ship, goal: shipIntents.intents[0].goal};
+        })
+        .groupBy(entry => entry.goal)
+        .map(({key, values}) => ({goal: key, ships: values.map(entry => entry.ship)}));
 }
 
 
