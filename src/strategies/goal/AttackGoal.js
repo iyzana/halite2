@@ -27,7 +27,6 @@ class AttackGoal {
 
     effectivenessPerShip(gameMap, shipSet) {
         const enemies = gameMap.enemyShips
-            .filter(enemy => enemy.isUndocked())
             .filter(enemy => Geometry.distance(this.enemy, enemy) < 8);
 
         return Math.ceil(enemies.length * 2);
@@ -41,10 +40,10 @@ class AttackGoal {
         const closestShip = Simulation.nearestEntity(ships, this.enemy).entity;
 
         const ourBunch = gameMap.myShips
-            .filter(ship => ship.isUndocked())
+            // .filter(enemy => enemy.isUndocked())
             .filter(ship => Geometry.distance(closestShip, ship) < 8);
 
-        if (ourBunch.length * 1.2 < enemies.length) {
+        if (ourBunch.length <= enemies.length) {
             const ourPos = Geometry.averagePos(ships);
             const theirPos = Geometry.averagePos(enemies);
 

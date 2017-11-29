@@ -39,12 +39,7 @@ class HarassmentGoal {
             .playerShips(this.player)
             .filter(ship => ship.isDocked() || ship.isDocking());
 
-        const sortedTargets = dockedEnemies
-            .map(e => [Geometry.distance(e, ship), e])
-            .sort((a, b) => a[0] - b[0])
-            .map(e => e[1]);
-
-        const target = sortedTargets[0];
+        const target = Simulation.nearestEntity(dockedEnemies, ship).entity;
 
         log.log("target is: " + target);
         if (!target || !ship) {

@@ -93,7 +93,7 @@ function rateGoals(gameMap, goals) {
         } else if (goal instanceof KamikazeGoal) {
             goal.score = 1.9;
         } else if (goal instanceof HarassmentGoal) {
-            goal.score = 2;
+            goal.score = 0;
         }
     });
 
@@ -112,24 +112,27 @@ function magicLoop(gameMap, shipIntents) {
     // TODO: do magic stuff to assign ships to goals based on effectiveness
 
     // [{goal, [shipIntents]}]
-    const grantedShips = shipIntents
-        .map((shipIntents) => {
-            shipIntents.intents.sort((a, b) => b.score - a.score);
-            return {shipIntents, goal: shipIntents.intents[0].goal};
-        })
-        .groupBy(entry => entry.goal)
-        .map(({key, values}) => ({goal: key, shipIntents: values.map(entry => entry.shipIntents)}));
+    for (let i = 0; i < 50; i++) {
+        const grantedShips = shipIntents
+            .map((shipIntents) => {
+                shipIntents.intents.sort((a, b) => b.score - a.score);
+                return {shipIntents, goal: shipIntents.intents[0].goal};
+            })
+            .groupBy(entry => entry.goal)
+            .map(({key, values}) => ({goal: key, shipIntents: values.map(entry => entry.shipIntents)}));
 
-    grantedShips.forEach(({goal, shipIntents}) => {
-        const max = goal.effectivenessPerShip(gameMap);
+        grantedShips.forEach(({goal, shipIntents}) => {
+            const max = goal.effectivenessPerShip(gameMap);
 
-        if (shipIntents.length > max) {
-            shipIntents
-                .sort((a, b) => b.intents[0].score - a.intents[0].score)
-                .slice(max)
-                .forEach(shipIntent => shipIntent.intents[0].score -= .15);
-        }
-    });
+            if (shipIntents.length > max) {
+                shipIntents
+                    .map(shipIntent => shipIntent.intents[0])
+                    .sort((a, b) => b.score - a.score)
+                    .slice(max)
+                    .forEach(goalIntent => goalIntent.score -= .01);
+            }
+        });
+    }
 
     return shipIntents
         .map((shipIntents) => {
