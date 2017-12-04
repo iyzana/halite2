@@ -34,11 +34,11 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
 
     log.log("discrete angled to: [" + to.x + "," + to.y + "]");
 
-    const allShips = gameMap.allShips
-        .filter(s => !s.isUndocked() || Geometry.distance(ship, s) <= 15)
+    const nearbyShips = gameMap.allShips
+        .filter(s => !s.isUndocked() || Geometry.distance(ship, s) <= constants.NEXT_TICK_COLLISION_RADIUS + 2)
         .filter(s => s.id !== ship.id);
 
-    let obstacles = obstaclesBetween(gameMap.planets, ship, to).concat(obstaclesBetween(allShips, ship, to)).concat(additionalObstacles);
+    let obstacles = obstaclesBetween(gameMap.planets, ship, to).concat(obstaclesBetween(nearbyShips, ship, to)).concat(additionalObstacles);
 
     if (obstacles.length) {
         log.log(obstacles.length + " obstacles");

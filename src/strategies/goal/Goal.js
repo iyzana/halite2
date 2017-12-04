@@ -67,6 +67,7 @@ function rateGoals(gameMap, goals) {
             const densityScore = (heuristic.planetDistances[goal.planet.id].sum - heuristic.smallestDistances) / distanceDifference;
 
             if (gameMap.numberOfPlayers === 4 && populatedPlanetsPct <= 0.6) {
+                goal.score += 0.01;
                 goal.score += (distance / maxDistance - 0.5) * 0.1;
 
                 const nearestOpponent = Simulation.nearestEntity(gameMap.enemyShips, goal.planet).dist;
