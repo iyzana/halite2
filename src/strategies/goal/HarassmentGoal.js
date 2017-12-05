@@ -57,21 +57,9 @@ class HarassmentGoal {
 
         const enemies = gameMap.enemyShips
             .filter(enemy => enemy.isUndocked())
-            .filter(enemy => Geometry.distance(enemy, ship) < constants.WEAPON_RADIUS * 2 + 2 * constants.SHIP_RADIUS + 1);
+            .filter(enemy => Geometry.distance(enemy, ship) < constants.MAX_SPEED + constants.WEAPON_RADIUS + 2 * constants.SHIP_RADIUS + 1);
 
-        const obstaclesNextTurn = enemies
-            .map(enemy => {
-                const speed = Math.min(7, Geometry.distance(enemy, ship));
-                const angle = Geometry.angleInDegree(enemy, ship);
-
-                const nextPos = Simulation.positionNextTick(enemy, speed, angle);
-                nextPos.radius = constants.WEAPON_RADIUS + constants.SHIP_RADIUS;
-                return nextPos;
-            });
-
-        const obstaclesThisTurn = enemies.map(enemy => ({x: enemy.x, y: enemy.y, radius: constants.WEAPON_RADIUS + constants.SHIP_RADIUS}));
-
-        const obstacles = obstaclesThisTurn.concat(obstaclesNextTurn);
+        const obstacles = enemies.map(enemy => ({x: enemy.x, y: enemy.y, radius: constants.MAX_SPEED + constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2}));
 
         const action = findPath(gameMap, ship, target, target, 0, obstacles);
 
