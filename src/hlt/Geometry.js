@@ -126,6 +126,11 @@ class Geometry {
         return pos;
     }
 
+    /**
+     * normalizes the vector, so it's length is 1
+     * @param vector
+     * @returns {object} unitVector
+     */
     static normalizeVector(vector) {
         const length = Math.sqrt(Math.pow(vector.x, 2) + Math.pow(vector.y, 2));
         vector.x /= length;
@@ -164,6 +169,58 @@ class Geometry {
         const closestDistance = Geometry.distance({x: closestX, y: closestY}, circle);
 
         return closestDistance <= circle.radius + fudge;
+    }
+
+    /**
+     * Calculates the intersection points of two circles
+     * @param c1
+     * @param c2
+     * @returns {*}
+     */
+    static intersectCircles(c1, c2) {
+        //same circle passed
+        if(c1.x === c2.x && c1.y === c2.y && c1.radius === c2.radius) {
+            return Infinity; //Infinite number of intersection points
+        }
+
+        const distance = Geometry.distance(c1, c2);
+        if(distance > c1.radius + c2.radius)
+            return [];
+
+        //solve circle equation: x**2+y**2=r**2 assuming c1 is at (0,0) and c2 is on the x-axis
+        const x = (c1.radius**2 +distance**2-c2.radius**2)/2*distance;
+        const y = Math.sqrt(c1.radius**2-x**2);
+
+        //translate solutions to right position
+        const baseVector = Geometry.normalizeVector({
+            x: c2.x - c1.x,
+            y: c2.y - c1.y,
+        });
+
+        baseVector.x *= x;
+        baseVector.y *= y;
+
+        const intersectionBase = {
+            x: c1.x + baseVector.x,
+            y: c1.y + baseVector.x,
+        };
+
+        //only one intersection point
+        if(y === 0) {
+           return [intersectionBase];
+        }
+
+        const intersect1 = {
+            x: intersectionBase.x - baseVector.y,
+            y: intersectionBase.y + baseVector.y,
+        };
+
+        const intersect2 = {
+            x: intersectionBase.x + baseVector.y,
+            y: intersectionBase.y - baseVector.y,
+        };
+
+        return [intersect1, intersect2];
     }
 }
 
