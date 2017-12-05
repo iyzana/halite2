@@ -38,7 +38,7 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
         .filter(s => !s.isUndocked() || Geometry.distance(ship, s) <= constants.NEXT_TICK_COLLISION_RADIUS + 2)
         .filter(s => s.id !== ship.id);
 
-    let obstacles = obstaclesBetween(gameMap.planets, ship, to).concat(obstaclesBetween(nearbyShips, ship, to)).concat(additionalObstacles);
+    let obstacles = obstaclesBetween(gameMap.planets, ship, to).concat(obstaclesBetween(nearbyShips, ship, to)).concat(obstaclesBetween(additionalObstacles, ship, to));
 
     if (obstacles.length) {
         log.log(obstacles.length + " obstacles");
