@@ -56,7 +56,7 @@ function rateGoals(gameMap, goals) {
                     goal.score += 0.025;
             }
         } else if (goal instanceof DefenseGoal) {
-            goal.score = 1;
+            goal.score = 1.08;
         } else if (goal instanceof AttackGoal) {
             if (goal.enemy.isUndocked()) {
                 goal.score = 1.02;
