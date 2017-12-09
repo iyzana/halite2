@@ -40,7 +40,7 @@ class AttackGoal {
         const closestShip = Simulation.nearestEntity(ships, this.enemy).entity;
 
         const ourBunch = gameMap.myShips
-            // .filter(ship => ship.isUndocked())
+        // .filter(ship => ship.isUndocked())
             .filter(ship => Geometry.distance(closestShip, ship) < constants.EFFECTIVE_ATTACK_RADIUS + 4);
 
         if (ourBunch.length <= enemies.length) {
@@ -82,10 +82,37 @@ class AttackGoal {
     }
 
     static navigateAttack(gameMap, ship, enemy) {
-        const attackDistance = enemy.isUndocked() ? 2 : 1;
-        const to = Geometry.reduceEnd(ship, enemy, constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2 - attackDistance);
+        const to = this.getAttackPos(enemy, gameMap, ship);
         const {speed, angle} = findPath(gameMap, ship, to);
         return new ActionThrust(ship, speed, angle);
+    }
+
+    // implicit dependency on HarassmentGoal.getAttackPos
+    static getAttackPos(enemy, gameMap, ship) {
+        const attackBuffer = enemy.isUndocked() ? 2 : 1;
+        const attackDistance = constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2 - attackBuffer;
+
+        const nearEnemies = gameMap.enemyShips
+            .filter(nearEnemy => Geometry.distance(enemy, nearEnemy) < constants.EFFECTIVE_ATTACK_RADIUS)
+            .filter(nearEnemy => nearEnemy.id !== enemy.id);
+
+        let to;
+        if (nearEnemies.length === 0) {
+            to = Geometry.reduceEnd(ship, enemy, attackDistance);
+        } else {
+            const awayVector = nearEnemies
+                .map(nearEnemy => ({x: nearEnemy.x - enemy.x, y: nearEnemy.y - enemy.y}))
+                .reduce((acc, c) => ({x: acc.x += c.x, y: acc.y + c.y}), {x: 0, y: 0});
+
+            const normalized = Geometry.normalizeVector(awayVector);
+
+            to = {
+                x: enemy.x - normalized.x * attackDistance,
+                y: enemy.y - normalized.y * attackDistance
+            }
+        }
+
+        return to;
     }
 
     static navigateRetreat(gameMap, ship, enemy) {

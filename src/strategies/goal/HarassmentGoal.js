@@ -20,11 +20,14 @@ class HarassmentGoal {
         if (potentialShips.length === 0)
             return [];
 
-        const {entity: theChosenOne} = Simulation.nearestEntity(potentialShips, Geometry.averagePos(enemies));
+        const destination = Geometry.averagePos(enemies);
+        const {entity: theChosenOne} = Simulation.nearestEntity(potentialShips, destination);
 
-        log.log("requesting ship: " + theChosenOne);
+        log.log("requested ship for harassment " + theChosenOne);
 
-        return [new GoalIntent(theChosenOne, this, 1)];
+        const score = 1 - Geometry.distance(theChosenOne, destination) / gameMap.maxDistance;
+
+        return [new GoalIntent(theChosenOne, this, score)];
     }
 
     effectivenessPerShip(shipSet) {
@@ -33,6 +36,10 @@ class HarassmentGoal {
 
     getShipCommands(gameMap, ships) {
         const ship = ships[0];
+        if (!ship) {
+            return [];
+        }
+
         log.log("harassing with ship: " + ship);
         const dockedEnemies = gameMap
             .playerShips(this.player)
@@ -44,10 +51,6 @@ class HarassmentGoal {
             .map(e => e[1]);
 
         let target = sortedTargets[0];
-
-        if (!ship) {
-            return [];
-        }
 
         if(!target) {
             target = Simulation.nearestEntity(gameMap.playerShips(this.player), ship).entity;
@@ -61,7 +64,8 @@ class HarassmentGoal {
 
         const obstacles = enemies.map(enemy => ({x: enemy.x, y: enemy.y, radius: constants.MAX_SPEED + constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2}));
 
-        const action = findPath(gameMap, ship, target, target, 0, obstacles);
+        const targetPos = Geometry.reduceEnd(ship, target, 2);
+        const action = findPath(gameMap, ship, targetPos, targetPos, 0, obstacles);
 
         const attackingEnemies = enemies.filter(enemy => Geometry.distance(enemy, ship) < constants.WEAPON_RADIUS + 2 * constants.SHIP_RADIUS + 1);
 

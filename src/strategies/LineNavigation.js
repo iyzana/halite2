@@ -10,7 +10,6 @@ const log = require('../hlt/Log');
  * @param gameMap The map
  * @param ship ship to navigate
  * @param to location to go to
- * @param ignore some entity to ignore while navigation
  * @param finalTo final target retained throughout recursion
  * @param depth search depth
  * @returns {{speed: number, angle: number}}
@@ -51,7 +50,7 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
         log.log("avoiding obstacle " + obstacle);
 
         const angle = Geometry.angleInRad(ship, to);
-        const escapeLength = obstacle.radius + 0.7;
+        const escapeLength = obstacle.radius + 0.75;
 
         log.log("angle: " + angle);
         log.log("length: " + escapeLength);
@@ -71,7 +70,7 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
         // log.log("escapePointB: " + JSON.stringify(escapePointB));
         log.log("escapePoint: " + JSON.stringify(escapePoint));
 
-        const result = findPath(gameMap, ship, escapePoint, finalTo, depth + 1);
+        const result = findPath(gameMap, ship, escapePoint, finalTo, depth + 1, additionalObstacles);
 
         if (!result) {
             escapePoint = distanceA >= distanceB ? escapePointA : escapePointB;
@@ -79,7 +78,7 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
 
             log.log("switched escapePoint: " + JSON.stringify(escapePoint));
 
-            const result = findPath(gameMap, ship, escapePoint, finalTo, depth + 1);
+            const result = findPath(gameMap, ship, escapePoint, finalTo, depth + 1, additionalObstacles);
 
             if (!result && depth === 0)
                 return {speed: 0, angle: 0};

@@ -36,17 +36,24 @@ function identifyGoals(gameMap) {
         .filter(ship => ship.isUndocked())
         .map(ship => new KamikazeGoal(gameMap, ship));
 
-    const myAvgPos = Geometry.averagePos(gameMap.myShips);
-    const enemyAverages = gameMap.playerIds
-        .filter(id => id !== gameMap.myPlayerId)
-        .map(id => [id, gameMap.playerShips(id)])
-        .map(([id, ships]) => [id, Geometry.averagePos(ships)])
-        .map(([id, avgPos]) => [id, Geometry.distance(avgPos, myAvgPos)])
-        .sort((a, b) => a[1] - b[1]);
+    const goals = [...planetGoals, ...defenseGoals, ...attackGoals, ...kamikazeGoals];
 
-    const harassmentGoal = new HarassmentGoal(gameMap, enemyAverages[0][0]);
+    const shipPct = gameMap.myShips.length / gameMap.allShips.length;
+    if (gameMap.enemyShips.length < 10 && shipPct < 0.75) {
+        const myAvgPos = Geometry.averagePos(gameMap.myShips);
+        const enemyAverages = gameMap.playerIds
+            .filter(id => id !== gameMap.myPlayerId)
+            .map(id => [id, gameMap.playerShips(id)])
+            .map(([id, ships]) => [id, Geometry.averagePos(ships)])
+            .map(([id, avgPos]) => [id, Geometry.distance(avgPos, myAvgPos)])
+            .sort((a, b) => a[1] - b[1]);
 
-    return [...planetGoals, ...defenseGoals, ...attackGoals, ...kamikazeGoals, harassmentGoal];
+        const harassmentGoal = new HarassmentGoal(gameMap, enemyAverages[0][0]);
+
+        goals.push(harassmentGoal);
+    }
+
+    return goals;
 }
 
 function rateGoals(gameMap, goals) {
@@ -94,7 +101,7 @@ function rateGoals(gameMap, goals) {
         } else if (goal instanceof KamikazeGoal) {
             goal.score = 1.9;
         } else if (goal instanceof HarassmentGoal) {
-            goal.score = 0;
+            goal.score = 1.35;
         }
     });
 
