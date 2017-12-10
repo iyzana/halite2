@@ -30,7 +30,16 @@ function identifyGoals(gameMap) {
         .filter(planet => planet.isOwnedByMe())
         .map(planet => new DefenseGoal(gameMap, planet));
 
-    const attackGoals = gameMap.enemyShips.map(ship => new AttackGoal(gameMap, ship));
+    const attackGoals = [];
+    let enemyShips = gameMap.enemyShips;
+
+    enemyShips.forEach(nextEnemy => {
+        const nearbyGoal = attackGoals.some(goal => Geometry.distance(nextEnemy, goal.enemy) < 4);
+
+        if (!nearbyGoal) {
+            attackGoals.push(new AttackGoal(gameMap, nextEnemy));
+        }
+    });
 
     const kamikazeGoals = gameMap.myShips
         .filter(ship => ship.isUndocked())
@@ -75,7 +84,6 @@ function rateGoals(gameMap, goals) {
             const densityScore = (heuristic.planetDistances[goal.planet.id].sum - heuristic.smallestDistances) / distanceDifference;
 
             if (gameMap.numberOfPlayers === 4 && populatedPlanetsPct <= 0.6) {
-                goal.score += 0.01;
                 goal.score += (distance / maxDistance - 0.5) * 0.1;
 
                 const nearestOpponent = Simulation.nearestEntity(gameMap.enemyShips, goal.planet).dist;
