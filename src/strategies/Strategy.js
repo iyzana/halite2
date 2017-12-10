@@ -90,16 +90,14 @@ function postprocessActions(gameMap, actions) {
         log.log("1 thrust " + thrust.ship + " => >" + thrust.speed + " ø" + thrust.angle)
     });
 
-    for (let i = 0; i < 3; i++) {
-        thrusts.forEach(current => {
-            resolveWallCollisions(gameMap, current);
+    for (let i = 0; i < 5; i++) {
+        thrusts.forEach(current => resolveWallCollisions(gameMap, current));
 
-            alignSimilarAngles(current, thrusts);
+        thrusts.forEach(current => alignSimilarAngles(current, thrusts));
 
-            resolveDestinationConflicts(current, thrusts);
+        thrusts.forEach(current => resolveDestinationConflicts(current, thrusts));
 
-            resolveCollisions(current, thrusts);
-        });
+        thrusts.forEach(current => resolveCollisions(current, thrusts));
     }
 
     thrusts.forEach(thrust => {

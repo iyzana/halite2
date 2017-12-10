@@ -27,8 +27,11 @@ function alignSimilarAngles(current, thrusts) {
             const thrustShipAngle = Geometry.angleBetween(current.angle, betweenShipsAngle);
             const thrustAngle = Geometry.angleBetween(current.angle, thrust2.angle);
             // check if thrustShipAngle and thrustAngle have the same sign
-            return Math.abs(thrustAngle) < 5 && thrustShipAngle * thrustAngle >= 0;
+            return Math.abs(thrustAngle) < 10 && thrustShipAngle * thrustAngle >= 0;
         });
+
+    if (similarThrusts.length === 1)
+        return;
 
     // calculate the average angle
     const avgDifference =
@@ -60,8 +63,8 @@ function resolveDestinationConflicts(current, thrusts) {
             return Geometry.distance(next1, next2) <= constants.SHIP_RADIUS * 2.2;
         })
         .forEach(thrust2 => {
-            thrust2.speed = Math.max(0, thrust2.speed - 3.5);
-            log.log("throttling speed for " + thrust2.ship + " to " + thrust2.speed);
+            thrust2.speed = Math.max(0, thrust2.speed - 1.5);
+            log.log("throttling speed for " + thrust2.ship + " to " + thrust2.speed + " because of " + current.ship);
         });
 }
 

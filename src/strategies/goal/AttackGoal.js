@@ -82,41 +82,15 @@ class AttackGoal {
     }
 
     static navigateAttack(gameMap, ship, enemy) {
-        const to = this.getAttackPos(enemy, gameMap, ship);
+        const attackBuffer = enemy.isUndocked() ? 2 : 1;
+        const attackDistance = constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2 - attackBuffer;
+        const to = Geometry.reduceEnd(ship, enemy, attackDistance);
         const {speed, angle} = findPath(gameMap, ship, to);
         return new ActionThrust(ship, speed, angle);
     }
 
-    // implicit dependency on HarassmentGoal.getAttackPos
-    static getAttackPos(enemy, gameMap, ship) {
-        const attackBuffer = enemy.isUndocked() ? 2 : 1;
-        const attackDistance = constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2 - attackBuffer;
-
-        const nearEnemies = gameMap.enemyShips
-            .filter(nearEnemy => Geometry.distance(enemy, nearEnemy) < constants.EFFECTIVE_ATTACK_RADIUS)
-            .filter(nearEnemy => nearEnemy.id !== enemy.id);
-
-        let to;
-        if (nearEnemies.length === 0) {
-            to = Geometry.reduceEnd(ship, enemy, attackDistance);
-        } else {
-            const awayVector = nearEnemies
-                .map(nearEnemy => ({x: nearEnemy.x - enemy.x, y: nearEnemy.y - enemy.y}))
-                .reduce((acc, c) => ({x: acc.x += c.x, y: acc.y + c.y}), {x: 0, y: 0});
-
-            const normalized = Geometry.normalizeVector(awayVector);
-
-            to = {
-                x: enemy.x - normalized.x * attackDistance,
-                y: enemy.y - normalized.y * attackDistance
-            }
-        }
-
-        return to;
-    }
-
-    static navigateRetreat(gameMap, ship, enemy) {
-        const to = Geometry.reduceEnd(ship, enemy, 0.5);
+    static navigateRetreat(gameMap, ship, retreatPoint) {
+        const to = Geometry.reduceEnd(ship, retreatPoint, 0.5);
         const {speed, angle} = findPath(gameMap, ship, to);
         return new ActionThrust(ship, speed, angle);
     }
