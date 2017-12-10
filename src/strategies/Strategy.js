@@ -64,6 +64,22 @@ function computePlanetHeuristics(gameMap) {
         });
     });
 
+    gameMap.planetHeuristics.averageDistanceFromEnemyPlanets = [];
+    gameMap.planets.forEach(p => gameMap.planetHeuristics.averageDistanceFromEnemyPlanets[p.id] = 0);
+
+    const enemyPlanets = gameMap.planets.filter(p => p.isOwnedByEnemy());
+
+    if(enemyPlanets.length > 0) {
+        gameMap.planets
+            .filter(p => !p.isOwnedByEnemy())
+            .forEach(p1 => {
+            enemyPlanets.forEach(p2 => {
+                gameMap.planetHeuristics.averageDistanceFromEnemyPlanets[p1.id] += planetDistances[p1.id].distanceTo[p2.id];
+            });
+            gameMap.planetHeuristics.averageDistanceFromEnemyPlanets[p1.id] /= enemyPlanets.length;
+        });
+    }
+
     Object.values(planetDistances).forEach(planetDistance => {
         planetDistance.sum = Object.values(planetDistance.distanceTo).reduce((acc, cur) => acc + cur ** 2)
     });
