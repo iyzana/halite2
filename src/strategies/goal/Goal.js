@@ -38,17 +38,18 @@ function identifyGoals(gameMap) {
 
     const goals = [...planetGoals, ...defenseGoals, ...attackGoals, ...kamikazeGoals];
 
-    const shipPct = gameMap.myShips.length / gameMap.allShips.length;
-    if (gameMap.enemyShips.length < 10 && shipPct < 0.75) {
-        const myAvgPos = Geometry.averagePos(gameMap.myShips);
-        const enemyAverages = gameMap.playerIds
-            .filter(id => id !== gameMap.myPlayerId)
-            .map(id => [id, gameMap.playerShips(id)])
-            .map(([id, ships]) => [id, Geometry.averagePos(ships)])
-            .map(([id, avgPos]) => [id, Geometry.distance(avgPos, myAvgPos)])
-            .sort((a, b) => a[1] - b[1]);
+    const myAvgPos = Geometry.averagePos(gameMap.myShips);
+    const enemyAverages = gameMap.playerIds
+        .filter(id => id !== gameMap.myPlayerId)
+        .map(id => [id, gameMap.playerShips(id)])
+        .map(([id, ships]) => [id, Geometry.averagePos(ships)])
+        .map(([id, avgPos]) => [id, Geometry.distance(avgPos, myAvgPos)])
+        .sort((a, b) => a[1] - b[1]);
 
-        const harassmentGoal = new HarassmentGoal(gameMap, enemyAverages[0][0]);
+    const harassPlayerId = enemyAverages[0][0];
+    const shipPct = gameMap.myShips.length / (gameMap.myShips.length + gameMap.playerShips(harassPlayerId).length);
+    if (gameMap.numberOfPlayers === 2 && gameMap.playerShips(harassPlayerId).length < 15 && shipPct < 0.75) {
+        const harassmentGoal = new HarassmentGoal(gameMap, harassPlayerId);
 
         goals.push(harassmentGoal);
     }
