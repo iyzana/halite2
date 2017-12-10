@@ -50,7 +50,7 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
         log.log("avoiding obstacle " + obstacle);
 
         const angle = Geometry.angleInRad(ship, to);
-        const escapeLength = obstacle.radius + 0.75;
+        const escapeLength = obstacle.radius + 0.7;
 
         log.log("angle: " + angle);
         log.log("length: " + escapeLength);
