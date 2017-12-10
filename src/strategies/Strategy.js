@@ -36,7 +36,7 @@ function preprocessMap(gameMap) {
 
     gameMap.maxDistance = Math.sqrt(Math.pow(gameMap.width, 2) + Math.pow(gameMap.height, 2));
 
-    if(!gameMap.planetHeuristics || gameMap.planetHeuristics.planetsLength !== gameMap.planets.length)
+    if (!gameMap.planetHeuristics || gameMap.planetHeuristics.planetsLength !== gameMap.planets.length)
         computePlanetHeuristics(gameMap);
 }
 
@@ -64,21 +64,34 @@ function computePlanetHeuristics(gameMap) {
         });
     });
 
-    gameMap.planetHeuristics.averageDistanceFromEnemyPlanets = [];
-    gameMap.planets.forEach(p => gameMap.planetHeuristics.averageDistanceFromEnemyPlanets[p.id] = 0);
+    const enemyDistance = {
+        average: [],
+        biggest: -Infinity,
+        smallest: Infinity
+    };
+    gameMap.planets.forEach(p => enemyDistance.average[p.id] = 0);
 
     const enemyPlanets = gameMap.planets.filter(p => p.isOwnedByEnemy());
 
-    if(enemyPlanets.length > 0) {
+    if (enemyPlanets.length > 0) {
         gameMap.planets
             .filter(p => !p.isOwnedByEnemy())
             .forEach(p1 => {
-            enemyPlanets.forEach(p2 => {
-                gameMap.planetHeuristics.averageDistanceFromEnemyPlanets[p1.id] += planetDistances[p1.id].distanceTo[p2.id];
+                enemyPlanets.forEach(p2 => {
+                    enemyDistance.average[p1.id] += planetDistances[p1.id].distanceTo[p2.id];
+                });
+                enemyDistance.average[p1.id] /= enemyPlanets.length;
+                if (enemyDistance.biggest < enemyDistance.average[p1.id]) {
+                    enemyDistance.biggest = enemyDistance.average[p1.id];
+                }
+
+                if (enemyDistance.smallest > enemyDistance.average[p1.id]) {
+                    enemyDistance.smallest = enemyDistance.average[p1.id];
+                }
             });
-            gameMap.planetHeuristics.averageDistanceFromEnemyPlanets[p1.id] /= enemyPlanets.length;
-        });
     }
+
+    gameMap.planetHeuristics.enemyDistance = enemyDistance;
 
     Object.values(planetDistances).forEach(planetDistance => {
         planetDistance.sum = Object.values(planetDistance.distanceTo).reduce((acc, cur) => acc + cur ** 2)

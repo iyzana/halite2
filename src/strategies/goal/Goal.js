@@ -83,6 +83,9 @@ function rateGoals(gameMap, goals) {
             const distanceDifference = (heuristic.biggestDistances - heuristic.smallestDistances) || heuristic.biggestDistances;
             const densityScore = (heuristic.planetDistances[goal.planet.id].sum - heuristic.smallestDistances) / distanceDifference;
 
+            const enemyDifference = (heuristic.enemyDistance.biggest - heuristic.enemyDistance.smallest) || heuristic.enemyDistance.biggest;
+            const enemyScore = 1 - ((heuristic.enemyDistance.average[goal.planet.id] - heuristic.enemyDistance.smallest) / enemyDifference);
+
             if (gameMap.numberOfPlayers === 4 && populatedPlanetsPct <= 0.6) {
                 goal.score += (distance / maxDistance - 0.5) * 0.1;
 
@@ -94,6 +97,7 @@ function rateGoals(gameMap, goals) {
 
                 goal.score += radiusScore * 0.002 - 0.001;
                 goal.score += densityScore * 0.02 - 0.01;
+                goal.score += enemyScore * 0.02 - 0.01;
             } else if (gameMap.numberOfPlayers === 2) {
                 goal.score += densityScore * 0.01 - 0.005;
             }
