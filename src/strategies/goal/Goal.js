@@ -77,17 +77,19 @@ function rateGoals(gameMap, goals) {
             const distance = Geometry.distance(goal.planet, {x: gameMap.width / 2, y: gameMap.height / 2});
 
             const heuristic = gameMap.planetHeuristics;
-            const radiusDifference = (heuristic.biggestRadius - heuristic.smallestRadius) || heuristic.biggestRadius;
+            const radiusDifference = (heuristic.biggestRadius - heuristic.smallestRadius) || heuristic.smallestRadius;
             const radiusScore = (goal.planet.radius - heuristic.smallestRadius) / radiusDifference;
 
-            const distanceDifference = (heuristic.biggestDistances - heuristic.smallestDistances) || heuristic.biggestDistances;
+            const distanceDifference = (heuristic.biggestDistances - heuristic.smallestDistances) || heuristic.smallestDistances;
             const densityScore = (heuristic.planetDistances[goal.planet.id].sum - heuristic.smallestDistances) / distanceDifference;
 
-            const enemyDifference = (heuristic.enemyDistance.biggest - heuristic.enemyDistance.smallest) || heuristic.enemyDistance.biggest;
-            const enemyScore = 1 - ((heuristic.enemyDistance.average[goal.planet.id] - heuristic.enemyDistance.smallest) / enemyDifference);
+            const enemyDifference = (heuristic.enemyDistance.biggest - heuristic.enemyDistance.smallest) || heuristic.enemyDistance.smallest;
+            let enemyScore = ((heuristic.enemyDistance.average[goal.planet.id] - heuristic.enemyDistance.smallest) / enemyDifference);
+            enemyScore = enemyScore * enemyScore;
 
             if (gameMap.numberOfPlayers === 4 && populatedPlanetsPct <= 0.6) {
-                goal.score += (distance / maxDistance - 0.5) * 0.1;
+                goal.score += 0.2;
+                goal.score += distance / maxDistance * 0.1 - 0.05;
 
                 const nearestOpponent = Simulation.nearestEntity(gameMap.enemyShips, goal.planet).dist;
                 if (nearestOpponent < 15)
@@ -95,11 +97,11 @@ function rateGoals(gameMap, goals) {
                 else
                     goal.score += 0.025;
 
-                goal.score += radiusScore * 0.002 - 0.001;
-                goal.score += densityScore * 0.02 - 0.01;
-                goal.score += enemyScore * 0.02 - 0.01;
+                goal.score += radiusScore * 0.005 - 0.0025;
+                goal.score += densityScore * 0.05 - 0.025;
+                goal.score += enemyScore * 0.04 - 0.02;
             } else if (gameMap.numberOfPlayers === 2) {
-                goal.score += densityScore * 0.01 - 0.005;
+                goal.score += densityScore * 0.02 - 0.01;
             }
         } else if (goal instanceof DefenseGoal) {
             goal.score = 1;
@@ -114,7 +116,7 @@ function rateGoals(gameMap, goals) {
         } else if (goal instanceof KamikazeGoal) {
             goal.score = 1.9;
         } else if (goal instanceof HarassmentGoal) {
-            goal.score = 1.35;
+            goal.score = 1.25;
         }
     });
 
@@ -130,9 +132,8 @@ function calcShipRequests(gameMap, goals) {
 }
 
 function magicLoop(gameMap, shipIntents) {
-    // TODO: do magic stuff to assign ships to goals based on effectiveness
+    // do magic stuff to assign ships to goals based on effectiveness
 
-    // [{goal, [shipIntents]}]
     for (let i = 0; i < 50; i++) {
         const grantedShips = shipIntents
             .map((shipIntents) => {

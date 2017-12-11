@@ -42,8 +42,8 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
                 return true;
             }
 
-            if (Geometry.distance(ship, s) <= constants.NEXT_TICK_COLLISION_RADIUS + 2) {
-                const nearestPlanet = Simulation.nearestEntity(gameMap.planets, ship);
+            if (Geometry.distance(ship, s) <= constants.MAX_SPEED + 2 * constants.SHIP_RADIUS) {
+                const nearestPlanet = Simulation.nearestEntity(gameMap.planets, s);
 
                 if (s.canDock(nearestPlanet.entity))
                     return true;

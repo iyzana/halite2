@@ -66,8 +66,8 @@ function computePlanetHeuristics(gameMap) {
 
     const enemyDistance = {
         average: [],
-        biggest: -Infinity,
-        smallest: Infinity
+        biggest: 1,
+        smallest: 0
     };
     gameMap.planets.forEach(p => enemyDistance.average[p.id] = 0);
 
@@ -120,12 +120,9 @@ function postprocessActions(gameMap, actions) {
     });
 
     for (let i = 0; i < 5; i++) {
-        thrusts.forEach(current => resolveWallCollisions(gameMap, current));
-
         thrusts.forEach(current => alignSimilarAngles(current, thrusts));
-
         thrusts.forEach(current => resolveDestinationConflicts(current, thrusts));
-
+        thrusts.forEach(current => resolveWallCollisions(gameMap, current));
         thrusts.forEach(current => resolveCollisions(current, thrusts));
     }
 
