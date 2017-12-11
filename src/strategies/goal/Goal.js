@@ -84,24 +84,30 @@ function rateGoals(gameMap, goals) {
             const densityScore = (heuristic.planetDistances[goal.planet.id].sum - heuristic.smallestDistances) / distanceDifference;
 
             const enemyDifference = (heuristic.enemyDistance.biggest - heuristic.enemyDistance.smallest) || heuristic.enemyDistance.smallest;
-            let enemyScore = ((heuristic.enemyDistance.average[goal.planet.id] - heuristic.enemyDistance.smallest) / enemyDifference);
-            enemyScore = enemyScore * enemyScore;
+            const enemyScore = ((heuristic.enemyDistance.average[goal.planet.id] - heuristic.enemyDistance.smallest) / enemyDifference);
 
             if (gameMap.numberOfPlayers === 4 && populatedPlanetsPct <= 0.6) {
-                goal.score += 0.2;
+                goal.score += 0.01;
                 goal.score += distance / maxDistance * 0.1 - 0.05;
 
                 const nearestOpponent = Simulation.nearestEntity(gameMap.enemyShips, goal.planet).dist;
-                if (nearestOpponent < 15)
-                    goal.score -= 0.025;
+                if (nearestOpponent < goal.planet.radius + 22)
+                    goal.score -= 0.03;
                 else
                     goal.score += 0.025;
 
-                goal.score += radiusScore * 0.005 - 0.0025;
-                goal.score -= densityScore * 0.05 - 0.025;
-                goal.score += enemyScore * 0.04 - 0.02;
-            } else if (gameMap.numberOfPlayers === 2) {
+                goal.score += radiusScore * 0.002 - 0.001;
                 goal.score += densityScore * 0.02 - 0.01;
+                goal.score += enemyScore * 0.02 - 0.01;
+                goal.score += goal.planet.freeDockingSpots / 6 * 0.1 - 0.05;
+            } else if (gameMap.numberOfPlayers === 2) {
+                const nearestOpponent = Simulation.nearestEntity(gameMap.enemyShips, goal.planet).dist;
+                if (nearestOpponent < goal.planet.radius + 22)
+                    goal.score -= 0.03;
+                else
+                    goal.score += 0.025;
+                goal.score += goal.planet.freeDockingSpots / 6 * 0.2 - 0.1;
+                // goal.score -= densityScore * 0.02 - 0.01;
             }
         } else if (goal instanceof DefenseGoal) {
             goal.score = 1;

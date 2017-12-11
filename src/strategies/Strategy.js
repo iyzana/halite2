@@ -36,8 +36,7 @@ function preprocessMap(gameMap) {
 
     gameMap.maxDistance = Math.sqrt(Math.pow(gameMap.width, 2) + Math.pow(gameMap.height, 2));
 
-    if (!gameMap.planetHeuristics || gameMap.planetHeuristics.planetsLength !== gameMap.planets.length)
-        computePlanetHeuristics(gameMap);
+    computePlanetHeuristics(gameMap);
 }
 
 function computePlanetHeuristics(gameMap) {
@@ -78,7 +77,8 @@ function computePlanetHeuristics(gameMap) {
             .filter(p => !p.isOwnedByEnemy())
             .forEach(p1 => {
                 enemyPlanets.forEach(p2 => {
-                    enemyDistance.average[p1.id] += planetDistances[p1.id].distanceTo[p2.id];
+                    const distance = 1 - planetDistances[p1.id].distanceTo[p2.id] / gameMap.maxDistance;
+                    enemyDistance.average[p1.id] += distance * distance;
                 });
                 enemyDistance.average[p1.id] /= enemyPlanets.length;
                 if (enemyDistance.biggest < enemyDistance.average[p1.id]) {
