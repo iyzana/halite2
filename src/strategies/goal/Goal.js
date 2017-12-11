@@ -98,7 +98,7 @@ function rateGoals(gameMap, goals) {
                     goal.score += 0.025;
 
                 goal.score += radiusScore * 0.005 - 0.0025;
-                goal.score += densityScore * 0.05 - 0.025;
+                goal.score -= densityScore * 0.05 - 0.025;
                 goal.score += enemyScore * 0.04 - 0.02;
             } else if (gameMap.numberOfPlayers === 2) {
                 goal.score += densityScore * 0.02 - 0.01;
