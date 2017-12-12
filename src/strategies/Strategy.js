@@ -1,4 +1,5 @@
 const log = require('../hlt/Log');
+const Geometry = require('../hlt/Geometry');
 
 const ActionThrust = require('./ActionThrust');
 const {getActions} = require('./goal/Goal');
@@ -34,6 +35,81 @@ function preprocessMap(gameMap) {
     previousGameMap = gameMap;
 
     gameMap.maxDistance = Math.sqrt(Math.pow(gameMap.width, 2) + Math.pow(gameMap.height, 2));
+
+    computePlanetHeuristics(gameMap);
+}
+
+function computePlanetHeuristics(gameMap) {
+    gameMap.planetHeuristics = {planetsLength: gameMap.planets.length};
+
+    const sortedPlanets = gameMap.planets.sort((a, b) => a.radius - b.radius);
+    gameMap.planetHeuristics.smallestRadius = sortedPlanets[0].radius;
+    gameMap.planetHeuristics.biggestRadius = sortedPlanets[sortedPlanets.length - 1].radius;
+
+    const planetDistances = {};
+
+    // could be sparse
+    for (let planet of gameMap.planets) {
+        planetDistances[planet.id] = {};
+        planetDistances[planet.id].distanceTo = {};
+    }
+
+    //causes double computation but is more readable
+    gameMap.planets.forEach(p1 => {
+        gameMap.planets.forEach(p2 => {
+            const distance = Geometry.distance(p1, p2);
+            planetDistances[p1.id].distanceTo[p2.id] = distance;
+            planetDistances[p2.id].distanceTo[p1.id] = distance;
+        });
+    });
+
+    const enemyDistance = {
+        average: [],
+        biggest: 1,
+        smallest: 0
+    };
+    gameMap.planets.forEach(p => enemyDistance.average[p.id] = 0);
+
+    const enemyPlanets = gameMap.planets.filter(p => p.isOwnedByEnemy());
+
+    if (enemyPlanets.length > 0) {
+        gameMap.planets
+            .filter(p => !p.isOwnedByEnemy())
+            .forEach(p1 => {
+                enemyPlanets.forEach(p2 => {
+                    const distance = 1 - planetDistances[p1.id].distanceTo[p2.id] / gameMap.maxDistance;
+                    enemyDistance.average[p1.id] += distance * distance;
+                });
+                enemyDistance.average[p1.id] /= enemyPlanets.length;
+                if (enemyDistance.biggest < enemyDistance.average[p1.id]) {
+                    enemyDistance.biggest = enemyDistance.average[p1.id];
+                }
+
+                if (enemyDistance.smallest > enemyDistance.average[p1.id]) {
+                    enemyDistance.smallest = enemyDistance.average[p1.id];
+                }
+            });
+    }
+
+    gameMap.planetHeuristics.enemyDistance = enemyDistance;
+
+    Object.values(planetDistances).forEach(planetDistance => {
+        planetDistance.sum = Object.values(planetDistance.distanceTo).reduce((acc, cur) => acc + cur ** 2)
+    });
+
+    gameMap.planetHeuristics.planetDistances = planetDistances;
+
+    gameMap.planetHeuristics.smallestDistances = Infinity;
+    gameMap.planetHeuristics.biggestDistances = -Infinity;
+
+    Object.values(planetDistances)
+        .map(planetDistance => planetDistance.sum)
+        .forEach(sum => {
+            if (sum < gameMap.planetHeuristics.smallestDistances)
+                gameMap.planetHeuristics.smallestDistances = sum;
+            if (sum > gameMap.planetHeuristics.biggestDistances)
+                gameMap.planetHeuristics.biggestDistances = sum;
+        });
 }
 
 function postprocessActions(gameMap, actions) {
@@ -43,16 +119,11 @@ function postprocessActions(gameMap, actions) {
         log.log("1 thrust " + thrust.ship + " => >" + thrust.speed + " ø" + thrust.angle)
     });
 
-    for (let i = 0; i < 3; i++) {
-        thrusts.forEach(current => {
-            resolveWallCollisions(gameMap, current);
-
-            alignSimilarAngles(current, thrusts);
-
-            resolveDestinationConflicts(current, thrusts);
-
-            resolveCollisions(current, thrusts);
-        });
+    for (let i = 0; i < 5; i++) {
+        thrusts.forEach(current => alignSimilarAngles(current, thrusts));
+        thrusts.forEach(current => resolveDestinationConflicts(current, thrusts));
+        thrusts.forEach(current => resolveWallCollisions(gameMap, current));
+        thrusts.forEach(current => resolveCollisions(current, thrusts));
     }
 
     thrusts.forEach(thrust => {

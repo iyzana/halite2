@@ -1,11 +1,20 @@
 #!/usr/bin/env bash
 
-number=1
 folder="dist/"
+number=1
 
-while [[ -d "${folder}v$number" ]]; do
-    number=$(( number + 1 ))
-done
+if [[ -z "$1" ]]; then
+    while [[ -d "${folder}v$number" ]]; do
+        number=$(( number + 1 ))
+    done
+
+else
+    number="$1"
+    if [[ -d "${folder}v$number" ]]; then
+        echo "directory exists, aborting"
+        exit
+    fi
+fi
 
 folder="${folder}v$number"
 

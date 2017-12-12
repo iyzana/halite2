@@ -116,16 +116,21 @@ class Geometry {
      */
     static averagePos(entities) {
         const pos = entities.reduce((acc, cur) => {
-                acc.x += cur.x;
-                acc.y += cur.y;
-                return acc;
-            }, {x: 0, y: 0});
+            acc.x += cur.x;
+            acc.y += cur.y;
+            return acc;
+        }, {x: 0, y: 0});
 
         pos.x /= entities.length;
         pos.y /= entities.length;
         return pos;
     }
 
+    /**
+     * normalizes the vector, so it's length is 1
+     * @param vector
+     * @returns {object} unitVector
+     */
     static normalizeVector(vector) {
         const length = Math.sqrt(Math.pow(vector.x, 2) + Math.pow(vector.y, 2));
         vector.x /= length;
@@ -164,6 +169,122 @@ class Geometry {
         const closestDistance = Geometry.distance({x: closestX, y: closestY}, circle);
 
         return closestDistance <= circle.radius + fudge;
+    }
+
+    /**
+     * Calculates the intersection points of two circles
+     * @param c1
+     * @param c2
+     * @returns {*}
+     */
+    static intersectCircles(c1, c2) {
+        //same circle passed
+        if (c1.x === c2.x && c1.y === c2.y && c1.radius === c2.radius) {
+            return Infinity; //Infinite number of intersection points
+        }
+
+        const distance = Geometry.distance(c1, c2);
+        if (distance > c1.radius + c2.radius)
+            return [];
+
+        //solve circle equation: x**2+y**2=r**2 assuming c1 is at (0,0) and c2 is on the x-axis
+        const x = (c1.radius ** 2 + distance ** 2 - c2.radius ** 2) / (2 * distance);
+        const y = Math.sqrt(c1.radius ** 2 - x ** 2);
+
+        //translate solutions to right position
+        const baseVectorX = Geometry.normalizeVector({
+            x: c2.x - c1.x,
+            y: c2.y - c1.y,
+        });
+        const baseVectorY = {
+            x: -baseVectorX.y,
+            y: baseVectorX.x,
+        };
+
+        baseVectorX.x *= x;
+        baseVectorX.y *= x;
+        baseVectorY.x *= y;
+        baseVectorY.y *= y;
+
+        //only one intersection point
+        if (y === 0) {
+            return [c1];
+        }
+
+        const intersect1 = {
+            x: c1.x + baseVectorX.x + baseVectorY.x,
+            y: c1.y + baseVectorX.y + baseVectorY.y,
+        };
+
+        const intersect2 = {
+            x: c1.x + baseVectorX.x - baseVectorY.x,
+            y: c1.y + baseVectorX.y - baseVectorY.y,
+        };
+
+        return [intersect1, intersect2];
+    }
+
+    static asPositiveAngle(angle) {
+        return (angle % 360 + 360) % 360;
+    }
+
+    static clockwiseAngleBetween(angle1, angle2) {
+        return Geometry.asPositiveAngle(Geometry.angleBetween(angle1, angle2));
+    }
+
+    static angleIntervalIntersections(intervals) {
+        function byNearestClockwise(angle) {
+            return (a, b) => Geometry.clockwiseAngleBetween(angle, a) - Geometry.clockwiseAngleBetween(angle, b);
+        }
+
+        return intervals.map(i => i.start)
+            .filter(angle => intervals.every(({start, end}) => this.angleInRange(angle, start, end)))
+            .map(angle => ({
+                start: angle,
+                end: intervals.map(i => i.end).sort(byNearestClockwise(angle))[0]
+            }));
+    }
+
+    /**
+     * black angular magic, touch at risk of the universe
+     *
+     * @param intervals The intervals for which to calculate the optimal escape angle
+     * @returns {number} optimal escape angle in degrees between 0 and 360
+     */
+    static inverseWeightedAverageMidpoints(intervals) {
+        const midpoints = intervals.map(i => ({
+            weight: Math.pow(1 - Geometry.clockwiseAngleBetween(i.start, i.end) / 360, 2),
+            midpoint: i.start < i.end ? (i.start + i.end) / 2 : this.asPositiveAngle((i.start + i.end - 360) / 2)
+        }));
+
+        const count = intervals.length;
+        const weightSum = midpoints.reduce((acc, c) => acc + c.weight, 0);
+        // used for circle wrap around
+        const maxAngle = 180 * (count - 1);
+
+        let sortedMidPoints = midpoints.sort((a, b) => a.midpoint - b.midpoint);
+
+        while (sortedMidPoints.reduce((acc, c) => acc + c.midpoint - sortedMidPoints[0].midpoint, 0) > maxAngle) {
+            sortedMidPoints[0].midpoint += 360;
+
+            const highest = sortedMidPoints[0];
+            sortedMidPoints = sortedMidPoints.slice(1, count);
+            sortedMidPoints.push(highest);
+        }
+
+        return (midpoints.reduce((acc, c) => acc + c.weight * c.midpoint, 0) / weightSum) % 360;
+    }
+
+    static angleInRange(angle, start, end) {
+        angle %= 360;
+        start %= 360;
+        end %= 360;
+
+        if (start <= end) {
+            return angle >= start && angle <= end;
+        } else {
+            return angle >= start || angle <= end;
+        }
     }
 }
 

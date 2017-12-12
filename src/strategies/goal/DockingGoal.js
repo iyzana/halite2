@@ -20,17 +20,17 @@ class DockingGoal {
             .map(ship => {
                 const turnsTillEntityReached = Simulation.turnsTillEntityReached(ship, this.planet);
 
-                if (turnsTillEntityReached >= turnsTillNewShip) {
+                if (turnsTillEntityReached >= turnsTillNewShip || Simulation.nearestEntity(gameMap.enemyShips, ship).dist < 15) {
                     return new GoalIntent(ship, this, 0);
                 }
 
-                let score = 1 - Geometry.distance(ship, this.planet) / gameMap.maxDistance;
+                const score = 1 - Geometry.distance(ship, this.planet) / gameMap.maxDistance;
                 return new GoalIntent(ship, this, score);
             });
     }
 
-    effectivenessPerShip(shipSet) {
-        return 1;
+    effectivenessPerShip(gameMap, shipSet) {
+        return this.planet.freeDockingSpots;
     }
 
     getShipCommands(gameMap, ships) {

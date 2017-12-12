@@ -10,12 +10,13 @@ const log = require('../hlt/Log');
  * @param gameMap The map
  * @param ship ship to navigate
  * @param to location to go to
- * @param ignore some entity to ignore while navigation
  * @param finalTo final target retained throughout recursion
  * @param depth search depth
  * @returns {{speed: number, angle: number}}
  */
-function findPath(gameMap, ship, to, finalTo, depth) {
+function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
+    if (!additionalObstacles)
+        additionalObstacles = [];
     if (!depth) {
         depth = 0;
         finalTo = to;
@@ -32,11 +33,31 @@ function findPath(gameMap, ship, to, finalTo, depth) {
 
     log.log("discrete angled to: [" + to.x + "," + to.y + "]");
 
-    const allShips = gameMap.allShips
-        .filter(s => !s.isUndocked() || Geometry.distance(ship, s) <= 15)
+    const nearbyShips = gameMap.myShips
+        .filter(s => {
+            if (!s.isUndocked())
+                return true;
+
+            if (Geometry.distance(ship, s) <= 2 * constants.MAX_SPEED + 2 * constants.SHIP_RADIUS) {
+                return true;
+            }
+
+            if (Geometry.distance(ship, s) <= 2.5) {
+                return true;
+            }
+
+            if (Geometry.distance(ship, s) <= constants.MAX_SPEED + 2 * constants.SHIP_RADIUS) {
+                const nearestPlanet = Simulation.nearestEntity(gameMap.planets, s);
+
+                if (s.canDock(nearestPlanet.entity))
+                    return true;
+            }
+
+            return false;
+        })
         .filter(s => s.id !== ship.id);
 
-    let obstacles = obstaclesBetween(gameMap.planets, ship, to).concat(obstaclesBetween(allShips, ship, to));
+    let obstacles = obstaclesBetween(gameMap.planets, ship, to).concat(obstaclesBetween(nearbyShips, ship, to)).concat(obstaclesBetween(additionalObstacles, ship, to));
 
     if (obstacles.length) {
         log.log(obstacles.length + " obstacles");
@@ -69,7 +90,7 @@ function findPath(gameMap, ship, to, finalTo, depth) {
         // log.log("escapePointB: " + JSON.stringify(escapePointB));
         log.log("escapePoint: " + JSON.stringify(escapePoint));
 
-        const result = findPath(gameMap, ship, escapePoint, finalTo, depth + 1);
+        const result = findPath(gameMap, ship, escapePoint, finalTo, depth + 1, additionalObstacles);
 
         if (!result) {
             escapePoint = distanceA >= distanceB ? escapePointA : escapePointB;
@@ -77,7 +98,7 @@ function findPath(gameMap, ship, to, finalTo, depth) {
 
             log.log("switched escapePoint: " + JSON.stringify(escapePoint));
 
-            const result = findPath(gameMap, ship, escapePoint, finalTo, depth + 1);
+            const result = findPath(gameMap, ship, escapePoint, finalTo, depth + 1, additionalObstacles);
 
             if (!result && depth === 0)
                 return {speed: 0, angle: 0};

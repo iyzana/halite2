@@ -135,61 +135,95 @@ class Simulation {
      * @returns {number} number of ticks
      */
     static turnsTillNextShip(planet) {
-        return (72 - planet.currentProduction) / this.productionWithShips(planet.numberOfDockedShips);
-    }
-
-    static shipsInTurns(planet, turnsLeft) {
-        const tillNextShip = Simulation.turnsTillNextShip(planet);
-        if (tillNextShip > turnsLeft)
-            return 0;
-        if (tillNextShip === turnsLeft)
-            return 1;
-        turnsLeft -= tillNextShip;
-        return 1 + Math.floor(this.productionWithShips(planet.numberOfPlayers) * turnsLeft / 72);
-    }
-
-    static turnsTillFullHeuristic(planet) {
-        let ships = (planet.numberOfDockedShips * 2 + planet.dockingSpots) / 3;
-
-        return (72 * (planet.freeDockingSpots - 1) + 72 - planet.currentProduction) / this.productionWithShips(ships) * 1.5;
-    }
-
-    static turnsTillFull(gameMap, planet) {
-        let ships = gameMap.myShips
-            .filter(ship => ship.isDocked() || ship.isDocking())
-            .filter(ship => Geometry.distance(ship, planet) < planet.radius + constants.DOCK_RADIUS)
+        let ships = planet.dockedShips
+            .filter(ship => !ship.isUndocking())
             .map(ship => ({status: ship.dockingStatus, progress: ship.dockingProgress}));
 
         if (ships.length === 0)
             return Infinity;
 
         let turns = 0;
-        let currentProduction = planet.currentProduction;
+        let currentProd = planet.currentProduction;
+
+        while (currentProd < 72) {
+            const dockedShips = ships.filter(ship => ship.status === dockingStatus.DOCKED).length;
+            currentProd += this.productionWithShips(dockedShips);
+
+            this.updateDockStates(ships);
+
+            turns++;
+        }
+
+        return turns;
+    }
+
+    static turnsTillFull(planet) {
+        let ships = planet.dockedShips
+            .filter(ship => !ship.isUndocking())
+            .map(ship => ({status: ship.dockingStatus, progress: ship.dockingProgress}));
+
+        if (ships.length === 0)
+            return Infinity;
+
+        let turns = 0;
+        let currentProd = planet.currentProduction;
 
         while (planet.dockingSpots > ships.length) {
-            let dockedShips = ships.filter(ship => ship.status === dockingStatus.DOCKED);
-            currentProduction += Simulation.productionWithShips(dockedShips.length);
+            let dockedShips = ships.filter(ship => ship.status === dockingStatus.DOCKED).length;
+            currentProd += Simulation.productionWithShips(dockedShips);
 
-            ships.forEach(ship => {
-                if (ship.status === dockingStatus.UNDOCKED)
-                    ship.status = dockingStatus.DOCKING;
-                else if (ship.status === dockingStatus.DOCKING) {
-                    ship.progress--;
+            this.updateDockStates(ships);
 
-                    if (ship.progress === 0)
-                        ship.status = dockingStatus.DOCKED;
-                }
-            });
-
-            if (currentProduction >= 72) {
+            if (currentProd >= 72) {
                 ships.push({status: dockingStatus.UNDOCKED, progress: 5});
-                currentProduction = 0;
+                currentProd -= 72;
             }
 
             turns++;
         }
 
         return turns - 1;
+    }
+
+    static shipsInTurns(planet, turns) {
+        let ships = planet.dockedShips
+            .filter(ship => !ship.isUndocking())
+            .map(ship => ({status: ship.dockingStatus, progress: ship.dockingProgress}));
+
+        if (ships.length === 0)
+            return Infinity;
+
+        let currentProd = planet.currentProduction;
+        let newShips = 0;
+
+        while (turns > 0) {
+            const dockedShips = ships.filter(ship => ship.status === dockingStatus.DOCKED);
+            currentProd += this.productionWithShips(dockedShips);
+
+            this.updateDockStates(ships);
+
+            if (currentProd >= 72) {
+                newShips++;
+                currentProd -= 72;
+            }
+
+            turns--;
+        }
+
+        return newShips;
+    }
+
+    static updateDockStates(ships) {
+        ships.forEach(ship => {
+            if (ship.status === dockingStatus.UNDOCKED)
+                ship.status = dockingStatus.DOCKING;
+            else if (ship.status === dockingStatus.DOCKING) {
+                ship.progress--;
+
+                if (ship.progress === 0)
+                    ship.status = dockingStatus.DOCKED;
+            }
+        });
     }
 
     static turnsTillEntityReached(ship, entity) {
