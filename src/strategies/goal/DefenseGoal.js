@@ -58,7 +58,7 @@ class DefenseGoal {
 
         let shipsStillNeeded = enemyCount;
 
-        const producedShips = Simulation.shipsInTurns(this.planet, turnsTillArrival);
+        const producedShips = Simulation.shipsInTurns(this.planet, turnsTillArrival + 1);
         const undockingShips = this.planet.dockedShips.filter(ship => ship.isUndocking());
 
         log.log(producedShips + " ships will be produced");
@@ -89,9 +89,9 @@ class DefenseGoal {
 
         let requiredShips = [];
 
-        if (shipsStillNeeded > 0) {
+        if (shipsStillNeeded + producedShips > 0) {
             const shipsToUndock = attackedShips.filter(ship => ship.isDocked())
-                .slice(0, shipsStillNeeded)
+                .slice(0, shipsStillNeeded + producedShips)
                 .map(ship => new GoalIntent(ship, this, 1));
 
             log.log("undocking " + shipsToUndock.length + " ships");
