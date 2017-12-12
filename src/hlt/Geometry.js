@@ -191,6 +191,10 @@ class Geometry {
         const x = (c1.radius ** 2 + distance ** 2 - c2.radius ** 2) / (2 * distance);
         const y = Math.sqrt(c1.radius ** 2 - x ** 2);
 
+        if(isNaN(y))
+            return [];
+
+
         //translate solutions to right position
         const baseVectorX = Geometry.normalizeVector({
             x: c2.x - c1.x,

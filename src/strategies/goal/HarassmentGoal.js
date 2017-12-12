@@ -69,23 +69,12 @@ class HarassmentGoal {
 
         const attackingEnemies = enemies.filter(enemy => Geometry.distance(enemy, ship) < constants.WEAPON_RADIUS + 2 * constants.SHIP_RADIUS + 1);
 
-        if (!action || attackingEnemies.length > 1) {
-            log.log("retreating");
-            const theirPos = Geometry.averagePos(enemies);
-
-            const vector = Geometry.normalizeVector({
-                x: ship.x - theirPos.x,
-                y: ship.y - theirPos.y,
-            });
-
-            const retreatPoint = {
-                x: theirPos.x + vector.x * 19,
-                y: theirPos.y + vector.y * 19,
-            };
-
-            const {speed, angle} = findPath(gameMap, ship, retreatPoint);
-            return [new ActionThrust(ship, speed, angle)];
-        }
+        // if (!action || attackingEnemies.length > 1) {
+        //     log.log("retreating");
+        //
+        //     const {speed, angle} = findPath(gameMap, ship, retreatPoint);
+        //     return [new ActionThrust(ship, speed, angle)];
+        // }
 
         return [new ActionThrust(ship, action.speed, action.angle)];
     }
