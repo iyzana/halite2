@@ -82,8 +82,7 @@ class AttackGoal {
     }
 
     static navigateAttack(gameMap, ship, enemy) {
-        const attackBuffer = enemy.isUndocked() ? 2 : 1;
-        const attackDistance = constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2 - attackBuffer;
+        const attackDistance = enemy.isUndocked() ? 0 : constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2 - 1;
         const to = Geometry.reduceEnd(ship, enemy, attackDistance);
         const {speed, angle} = findPath(gameMap, ship, to);
         return new ActionThrust(ship, speed, angle);

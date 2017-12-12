@@ -33,10 +33,14 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
 
     log.log("discrete angled to: [" + to.x + "," + to.y + "]");
 
-    const nearbyShips = gameMap.allShips
+    const nearbyShips = gameMap.myShips
         .filter(s => {
             if (!s.isUndocked())
                 return true;
+
+            if (Geometry.distance(ship, s) <= 2 * constants.MAX_SPEED + 2 * constants.SHIP_RADIUS) {
+                return true;
+            }
 
             if (Geometry.distance(ship, s) <= 2.5) {
                 return true;
