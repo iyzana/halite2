@@ -15,6 +15,12 @@ class DefenseGoal {
     shipRequests(gameMap) {
         const myPlanets = gameMap.planets
             .filter(planet => planet.isOwnedByMe());
+        const enemysEnemyPlanets = gameMap.playerIds
+            .filter(id => id !== gameMap.myPlayerId)
+            .reduce((acc, c) => (acc[c] = gameMap.planets.filter(p => p.ownerId !== c)) && acc, {});
+
+        log.log("enemyPlanets");
+        log.log(enemysEnemyPlanets);
 
         const attackingEnemies = gameMap.enemyShips
             .filter(ship => ship.isUndocked())
@@ -32,10 +38,17 @@ class DefenseGoal {
                 };
 
                 // ship is flying in the direction of our planet
-                return Geometry.intersectSegmentCircle(ship, end, this.planet, constants.DOCK_RADIUS + constants.SHIP_RADIUS + constants.EFFECTIVE_ATTACK_RADIUS);
+                const onItsWay = Geometry.intersectSegmentCircle(ship, end, this.planet, constants.DOCK_RADIUS + constants.SHIP_RADIUS);
+                const aroundHere = Geometry.distance(ship, this.planet) < this.planet.radius + constants.DOCK_RADIUS + constants.EFFECTIVE_ATTACK_RADIUS;
+
+                return onItsWay || aroundHere;
             })
             .filter(ship => gameMap.planetsBetween(ship, this.planet).length === 0)
-            .filter(enemy => Geometry.distance(this.planet, enemy) < Simulation.nearestEntity(myPlanets, enemy).dist * 2);
+            .filter(enemy => {
+                const otherPlanets = enemysEnemyPlanets[enemy.ownerId].filter(p => p.id !== this.planet.id);
+                const nearest = Simulation.nearestEntity(otherPlanets, enemy);
+                return Geometry.distance(this.planet, enemy) < nearest.dist * 1.6;
+            });
 
         const attackedShipDistances = new Map(this.planet.dockedShips
             .map(ship => [ship.id, Simulation.nearestEntity(attackingEnemies, ship).dist]));
@@ -99,10 +112,10 @@ class DefenseGoal {
             requiredShips = requiredShips.concat(shipsToUndock);
         }
 
-        if (sortedShipsInRange.length > 0 && enemyDistance < 15) {
+        if (sortedShipsInRange.length > 0 && enemyDistance < 21) {
             const maxDistance = sortedShipsInRange[0].dist;
             const shipsToSend = sortedShipsInRange.map(tuple => {
-                const score = 1 - tuple.dist / maxDistance;
+                const score = 1.5 - tuple.dist / maxDistance * 0.5;
                 return new GoalIntent(tuple.ship, this, score);
             });
 
