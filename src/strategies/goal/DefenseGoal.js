@@ -17,7 +17,7 @@ class DefenseGoal {
             .filter(planet => planet.isOwnedByMe());
         const enemysEnemyPlanets = gameMap.playerIds
             .filter(id => id !== gameMap.myPlayerId)
-            .reduce((acc, c) => (acc[c] = gameMap.planets.filter(p => p.ownerId !== c)) && acc, {});
+            .reduce((acc, c) => (acc[c] = gameMap.planets.filter(p => p.ownerId !== c && p.isOwned())) && acc, {});
 
         log.log("enemyPlanets");
         log.log(enemysEnemyPlanets);
@@ -39,7 +39,7 @@ class DefenseGoal {
 
                 // ship is flying in the direction of our planet
                 const onItsWay = Geometry.intersectSegmentCircle(ship, end, this.planet, constants.DOCK_RADIUS + constants.SHIP_RADIUS);
-                const aroundHere = Geometry.distance(ship, this.planet) < this.planet.radius + constants.DOCK_RADIUS + constants.EFFECTIVE_ATTACK_RADIUS;
+                const aroundHere = Geometry.distance(ship, this.planet) < this.planet.radius + constants.DOCK_RADIUS + constants.NEXT_TICK_ATTACK_RADIUS;
 
                 return onItsWay || aroundHere;
             })
@@ -113,9 +113,8 @@ class DefenseGoal {
         }
 
         if (sortedShipsInRange.length > 0 && enemyDistance < 21) {
-            const maxDistance = sortedShipsInRange[0].dist;
             const shipsToSend = sortedShipsInRange.map(tuple => {
-                const score = 1.5 - tuple.dist / maxDistance * 0.5;
+                const score = 1 - tuple.dist / gameMap.maxDistance;
                 return new GoalIntent(tuple.ship, this, score);
             });
 

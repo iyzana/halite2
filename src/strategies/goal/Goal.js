@@ -35,7 +35,7 @@ function identifyGoals(gameMap) {
 
     enemyShips.forEach(nextEnemy => {
         const nearbyGoal = attackGoals.some(goal => Geometry.distance(nextEnemy, goal.enemy) < 6);
-        const nearbyDefense = defenseGoals.some(goal => Geometry.distance(nextEnemy, goal.planet) < goal.planet.radius + 7);
+        const nearbyDefense = defenseGoals.some(goal => Geometry.distance(nextEnemy, goal.planet) < goal.planet.radius + 15);
 
         if (!nearbyGoal && !nearbyDefense) {
             attackGoals.push(new AttackGoal(gameMap, nextEnemy));
