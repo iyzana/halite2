@@ -125,7 +125,7 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
 
     const distance = Geometry.distance(ship, to);
     let angle = Geometry.angleInDegree(ship, to);
-    const speed = Math.max(1, distance >= constants.MAX_SPEED ? constants.MAX_SPEED : distance);
+    let speed = Math.max(1, distance >= constants.MAX_SPEED ? constants.MAX_SPEED : distance);
 
 
     if (insideObstacles.length > 0) {
@@ -213,6 +213,8 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
                 angle = escapeAngles[0];
             }
         }
+
+        speed = 7;
     }
 
     log.log(">" + speed + " ø" + angle);
