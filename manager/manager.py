@@ -45,7 +45,7 @@ class Manager:
         self.players_max = players_max
         self.rounds = rounds
         self.round_count = 0
-        self.keep_replays = True
+        self.keep_replays = False
         self.keep_logs = True
         self.priority_sigma = True
         self.exclude_inactive = False
@@ -236,9 +236,9 @@ class Commandline:
                                  action = "store", default = "25",
                                  help = "Limit number of results")
 
-        self.parser.add_argument("-n", "--no-replays", dest="deleteReplays",
+        self.parser.add_argument("-k", "--keep-replays", dest="keepReplays",
                                  action = "store_true", default = False,
-                                 help = "Do not store replays")
+                                 help = "Do keep the replays(slower)")
 
         self.parser.add_argument("-l", "--no-logs", dest="deleteLogs",
                                  action = "store_true", default = False,
@@ -309,9 +309,9 @@ class Commandline:
         print ('Using database %s' % self.cmds.db_filename)
         self.manager = Manager(halite_command, self.cmds.db_filename, None, -1, 2)
 
-        if self.cmds.deleteReplays:
-            print("keep_replays = False")
-            self.manager.keep_replays = False
+        if self.cmds.keepReplays:
+            print("keep_replays = True")
+            self.manager.keep_replays = True
             
         if self.cmds.deleteLogs:
             print("keep_logs = False")
