@@ -20,7 +20,9 @@ class DefenseGoal {
             .reduce((acc, c) => (acc[c] = gameMap.planets.filter(p => p.ownerId !== c && p.isOwned())) && acc, {});
 
         log.log("enemyPlanets");
-        log.log(enemysEnemyPlanets);
+	Object.keys(enemysEnemyPlanets).forEach(id => {
+	    log.log("enemy " + id + " enemyPlanets: " + enemysEnemyPlanets[id]);
+	});
 
         const attackingEnemies = gameMap.enemyShips
             .filter(ship => ship.isUndocked())
@@ -63,13 +65,13 @@ class DefenseGoal {
 
         this.endangeredShip = attackedShips[0];
         const enemyDistance = attackedShipDistances.get(this.endangeredShip.id);
-        const enemyCount = attackingEnemies.length;
+        this.enemyCount = attackingEnemies.length;
         const turnsTillArrival = enemyDistance / constants.MAX_SPEED;
 
-        log.log(this.planet + " attacked by " + enemyCount + " enemies");
+        log.log(this.planet + " attacked by " + this.enemyCount + " enemies");
         log.log("defending " + this.endangeredShip + " enemy distance is " + enemyDistance + " arrival in " + turnsTillArrival + " turns");
 
-        let shipsStillNeeded = enemyCount;
+        let shipsStillNeeded = this.enemyCount;
 
         const producedShips = Simulation.shipsInTurns(this.planet, turnsTillArrival + 1);
         const undockingShips = this.planet.dockedShips.filter(ship => ship.isUndocking());
@@ -91,7 +93,7 @@ class DefenseGoal {
         const sortedShipsInRange = gameMap.myShips
             .filter(ship => ship.isUndocked())
             .map(ship => ({ship, dist: Geometry.distance(ship, this.endangeredShip)}))
-            .filter(tuple => tuple.dist < enemyDistance + 15)
+            .filter(tuple => tuple.dist < enemyDistance + constants.MAX_SPEED * 2)
             .sort((a, b) => b.dist - a.dist);
 
         log.log("ships in range: " + sortedShipsInRange.map(tuple => tuple.ship));
@@ -102,7 +104,7 @@ class DefenseGoal {
 
         let requiredShips = [];
 
-        if (shipsStillNeeded + producedShips > 0) {
+        if (shipsStillNeeded > 0) {
             const shipsToUndock = attackedShips.filter(ship => ship.isDocked())
                 .slice(0, shipsStillNeeded + producedShips)
                 .map(ship => new GoalIntent(ship, this, 1));
@@ -125,7 +127,7 @@ class DefenseGoal {
     }
 
     effectivenessPerShip(gameMap, shipSet) {
-        return 2;
+        return this.enemyCount;
     }
 
     getShipCommands(gameMap, ships) {
