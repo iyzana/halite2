@@ -73,13 +73,13 @@ class Manager:
     def pick_contestants(self, num):
         pool = list(self.players)   #this makes a copy
         contestants = list()
-        # FIXME maybe reactivate this block later
-#        if self.priority_sigma:
-#            high_sigma_index = max((player.sigma, i) for i, player in enumerate(self.players))[1]
-#            high_sigma_contestant = self.players[high_sigma_index]
-#            contestants.append(high_sigma_contestant)
-#            pool.remove(high_sigma_contestant)
-#            num -= 1
+        # FIXME maybe deactivate this block later
+        if self.priority_sigma:
+            high_sigma_index = max((player.sigma, i) for i, player in enumerate(self.players))[1]
+            high_sigma_contestant = self.players[high_sigma_index]
+            contestants.append(high_sigma_contestant)
+            pool.remove(high_sigma_contestant)
+            num -= 1
         random.shuffle(pool)
         contestants.extend(pool[:num])
         random.shuffle(contestants)
