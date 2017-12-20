@@ -58,8 +58,9 @@ class Match:
     def get_command(self, halite_binary):
         dims = "-d " + str(self.map_width) + " " + str(self.map_height)
         quiet = "-q"
+        no_replay = "-r"
         seed = "-s " + str(self.map_seed)
-        result = [halite_binary, dims, quiet, seed]
+        result = [halite_binary, dims, quiet, no_replay, seed]
         return result + self.paths
 
     def run_match(self, halite_binary):
