@@ -58,8 +58,9 @@ class Match:
     def get_command(self, halite_binary):
         dims = "-d " + str(self.map_width) + " " + str(self.map_height)
         quiet = "-q"
+        no_replay = "" if self.keep_replay else "-r"
         seed = "-s " + str(self.map_seed)
-        result = [halite_binary, dims, quiet, seed]
+        result = [halite_binary, dims, quiet, no_replay, seed]
         return result + self.paths
 
     def run_match(self, halite_binary):
@@ -82,9 +83,6 @@ class Match:
                 self.replay_file = os.path.join(record_dir, self.replay_file)
             except Exception as e:
                 print(e)
-        else: 
-            print("Deleting replay\n")
-            os.remove(self.replay_file)
 
         if self.keep_logs:
             print("Keeping logs\n")

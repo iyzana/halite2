@@ -79,18 +79,16 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
 
         let [escapePointA, escapePointB] = getEscapePoints(ship, obstacle, ship.radius);
 
-        if(!escapePointA) {
-            log.log("point a undefined " + ship + " x:" +obstacle.x+" y:"+obstacle.y+" r:"+obstacle.radius);
-            escapePointA = {x:0, y:0};
-        }
+        let requestedVector = Simulation.toVector(Math.max(1, Geometry.distance(ship, escapePointA)), Geometry.angleInDegree(ship, escapePointA) + 1);
+        escapePointA.x = ship.x + requestedVector.x;
+        escapePointA.y = ship.y + requestedVector.y;
 
-        if(!escapePointB) {
-            log.log("point b undefined " + ship + " x:" +obstacle.x+" y:"+obstacle.y+" r:"+obstacle.radius);
-            escapePointB = {x:0, y:0};
-        }
+        requestedVector = Simulation.toVector(Math.max(1, Geometry.distance(ship, escapePointB)), Geometry.angleInDegree(ship, escapePointB));
+        escapePointB.x = ship.x + requestedVector.x;
+        escapePointB.y = ship.y + requestedVector.y;
 
-        const distanceA = Geometry.distance(ship, escapePointA);
-        let distanceB = Geometry.distance(ship, escapePointB);
+        const distanceA = Geometry.distance(to, escapePointA);
+        let distanceB = Geometry.distance(to, escapePointB);
 
         let escapePoint = distanceA < distanceB ? escapePointA : escapePointB;
         escapePoint = findNearestEscapePoint(escapePoint, ship, finalTo, to);

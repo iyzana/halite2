@@ -20,7 +20,7 @@ class AttackGoal {
         return gameMap.myShips
             .filter(ship => ship.isUndocked())
             .map(ship => {
-                let score = 1 - Geometry.distance(ship, this.enemy) / gameMap.maxDistance;
+                let score = 1 - Math.floor(Geometry.distance(ship, this.enemy) / constants.MAX_SPEED) * constants.MAX_SPEED / gameMap.maxDistance;
                 return new GoalIntent(ship, this, score);
             })
     }
