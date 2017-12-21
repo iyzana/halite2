@@ -258,7 +258,7 @@ class Geometry {
     static inverseWeightedAverageMidpoints(intervals) {
         const midpoints = intervals.map(i => ({
             weight: Math.pow(1 - Geometry.clockwiseAngleBetween(i.start, i.end) / 360, 2),
-            midpoint: i.start < i.end ? (i.start + i.end) / 2 : this.asPositiveAngle((i.start + i.end - 360) / 2)
+            midpoint: this.averageAngle(i.start, i.end),
         }));
 
         const count = intervals.length;
@@ -277,6 +277,10 @@ class Geometry {
         }
 
         return (midpoints.reduce((acc, c) => acc + c.weight * c.midpoint, 0) / weightSum) % 360;
+    }
+
+    static averageAngle(angle1, angle2) {
+        return angle1 < angle2 ? (angle1 + angle2) / 2 : this.asPositiveAngle((angle1 + angle2 - 360) / 2)
     }
 
     static angleInRange(angle, start, end) {
