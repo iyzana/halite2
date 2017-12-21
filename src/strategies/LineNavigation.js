@@ -186,6 +186,9 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
             log.log("escape not possible");
             angle = Geometry.inverseWeightedAverageMidpoints(angleIntervals);
         } else {
+
+            //TODO: only looks at our current position...we should look some turns into the future
+            const wallIntersections = Simulation.intersectWallsWithCircle(gameMap, circle);
             const planetIntersections = gameMap.planets
                 .filter(p => Geometry.distance(p, ship) <= p.radius+ship.radius+circle.radius)
                 .map(p => [p, Geometry.intersectCircles({x: p.x, y: p.y, radius: p.radius+ship.radius}, circle)])
@@ -195,7 +198,10 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
                     }
                     return [p, i.length === 2 ? [i[1], i[0]] : i];
                 })
-                .map(([p,i])=>i)
+                .map(([p,i])=>i);
+
+            const environmentIntersections = planetIntersections
+                .concat(wallIntersections)
                 .map(i => i.map(pos => Geometry.angleInDegree(ship, pos)))
                 .map(interval => {
                     if (interval.length === 1)
@@ -204,16 +210,16 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
                         return {start: interval[0], end: interval[1]};
                 })
                 .map(i => ({start: Math.ceil(i.start), end: Math.floor(i.end)}));
-            log.log("planetIntersections: " + JSON.stringify(planetIntersections));
 
-            if(planetIntersections.length > 0)
-                intersections = Geometry.angleIntervalIntersections(intersections.concat(planetIntersections));
+            log.log("environmentIntersections: " + JSON.stringify(environmentIntersections));
+
+            if(environmentIntersections.length > 0)
+                intersections = Geometry.angleIntervalIntersections(intersections.concat(environmentIntersections));
 
             if (intersections.length === 0) {
-                log.log("colliding with planet on all escape paths");
+                log.log("colliding with environment on all escape paths");
 
-                const planetEscapes = planetIntersections
-                    .map(i => ({start: Math.ceil(i.start), end: Math.floor(i.end)}))
+                const environmentEscapes = environmentIntersections
                     .flatMap(interval => {
                         return [interval.start, interval.end];
                     }).map(angle => {
@@ -227,9 +233,9 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
                     })
                     .sort((a, b) => b.avgDist - a.avgDist);
 
-                log.log("planet escape angles(weighted): " + JSON.stringify(planetEscapes));
+                log.log("environment escape angles(weighted): " + JSON.stringify(environmentEscapes));
 
-                angle = planetEscapes[0].angle;
+                angle = environmentEscapes[0].angle;
             } else {
                 if (!intersections.some(i => Geometry.angleInRange(angle, i.start, i.end))) {
                     const escapeAngles = intersections

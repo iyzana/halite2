@@ -40,6 +40,70 @@ class Simulation {
         }
     }
 
+    static intersectWallsWithCircle(gameMap, circle) {
+        const rSq = circle.radius ** 2;
+
+        //TODO why is this so ugly?!? jannis help!
+        const intersections = [];
+
+        //top
+        let discriminant = rSq - circle.y ** 2;
+        if(discriminant >= 0) {
+            discriminant = Math.sqrt(discriminant);
+            intersections.push([{
+                x: circle.x + discriminant,
+                y: 0,
+            }, {
+                x: circle.x - discriminant,
+                y: 0,
+            }]);
+        }
+
+        //right
+        discriminant = rSq - (gameMap.width - circle.x) ** 2;
+        if(discriminant >= 0) {
+            discriminant = Math.sqrt(discriminant);
+            intersections.push([{
+                x: gameMap.width,
+                y: circle.y + discriminant,
+            }, {
+                x: gameMap.width,
+                y: circle.y - discriminant,
+            }]);
+        }
+
+
+        //bottom
+        discriminant = rSq - (gameMap.height - circle.y) ** 2;
+        if(discriminant >= 0) {
+            discriminant = Math.sqrt(discriminant);
+            intersections.push([{
+                x: circle.x + discriminant,
+                y: gameMap.height,
+            }, {
+                x: circle.x - discriminant,
+                y: gameMap.height,
+            }]);
+        }
+
+        //left
+        discriminant = rSq - circle.x ** 2;
+        if(discriminant >= 0) {
+            discriminant = Math.sqrt(discriminant);
+            intersections.push([{
+                x: 0,
+                y: circle.y + discriminant,
+            }, {
+                x: 0,
+                y: circle.y - discriminant,
+            }]);
+        }
+
+
+        return intersections;
+    }
+
+
     static insideWall(gameMap, pos) {
         return pos.x < 0 || pos.y < 0 || pos.x >= gameMap.width || pos.y >= gameMap.height;
     }
