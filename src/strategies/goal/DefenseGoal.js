@@ -79,8 +79,8 @@ class DefenseGoal {
         log.log(producedShips + " ships will be produced");
         log.log(undockingShips.length + " ships are undocking");
 
-        shipsStillNeeded -= producedShips;
-        shipsStillNeeded -= undockingShips.length;
+        shipsStillNeeded -= producedShips * 1.4;
+        shipsStillNeeded -= undockingShips.length * 1.4;
 
         log.log(shipsStillNeeded + " ships still needed");
 
@@ -98,7 +98,7 @@ class DefenseGoal {
 
         log.log("ships in range: " + sortedShipsInRange.map(tuple => tuple.ship));
 
-        shipsStillNeeded -= sortedShipsInRange.length;
+        shipsStillNeeded -= sortedShipsInRange.length * 1.4;
 
         log.log(shipsStillNeeded + " ships still needed");
 
@@ -106,7 +106,7 @@ class DefenseGoal {
 
         if (shipsStillNeeded > 0) {
             const shipsToUndock = attackedShips.filter(ship => ship.isDocked())
-                .slice(0, shipsStillNeeded + producedShips)
+                .slice(0, shipsStillNeeded + producedShips * 1.2)
                 .map(ship => new GoalIntent(ship, this, 1));
 
             log.log("undocking " + shipsToUndock.length + " ships");
