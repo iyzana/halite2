@@ -40,7 +40,7 @@ class AttackGoal {
         const closestShip = Simulation.nearestEntity(ships, this.enemy).entity;
 
         const ourBunch = gameMap.myShips
-        // .filter(ship => ship.isUndocked())
+            .filter(ship => ship.isUndocked())
             .filter(ship => Geometry.distance(closestShip, ship) < constants.EFFECTIVE_ATTACK_RADIUS + 4);
 
         if (ourBunch.length <= enemies.length) {
