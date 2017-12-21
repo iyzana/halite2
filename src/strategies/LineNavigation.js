@@ -57,15 +57,11 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
         })
         .filter(s => s.id !== ship.id);
 
-    const groupedObstacles = additionalObstacles.groupBy(o => Geometry.distance(ship, o) <= o.radius);
+    const groupedObstacles = additionalObstacles.groupBy(o => Geometry.distance(ship, o) <= o.radius + ship.radius);
     const outsideObstacles = groupedObstacles.filter(e => e.key === false).flatMap(e => e.values) || [];
     const insideObstacles = groupedObstacles.filter(e => e.key === true).flatMap(e => e.values) || [];
 
-    log.log(JSON.stringify(groupedObstacles));
-    log.log(JSON.stringify(outsideObstacles));
-    log.log(JSON.stringify(insideObstacles));
-
-    if(additionalObstacles.length > 0) {
+    if(insideObstacles.length > 0) {
         log.log("insideObstacles not empty!");
     }
 
@@ -81,19 +77,18 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
 
         log.log("avoiding obstacle " + obstacle);
 
-        const angle = Geometry.angleInRad(ship, to);
-        const escapeLength = obstacle.radius + 0.7;
+        let [escapePointA, escapePointB] = getEscapePoints(ship, obstacle, ship.radius);
 
-        log.log("angle: " + angle);
-        log.log("length: " + escapeLength);
+        let requestedVector = Simulation.toVector(Math.max(1, Geometry.distance(ship, escapePointA)), Geometry.angleInDegree(ship, escapePointA) + 1);
+        escapePointA.x = ship.x + requestedVector.x;
+        escapePointA.y = ship.y + requestedVector.y;
 
-        let dx = escapeLength * Math.sin(angle);
-        let dy = escapeLength * Math.cos(angle);
+        requestedVector = Simulation.toVector(Math.max(1, Geometry.distance(ship, escapePointB)), Geometry.angleInDegree(ship, escapePointB));
+        escapePointB.x = ship.x + requestedVector.x;
+        escapePointB.y = ship.y + requestedVector.y;
 
-        const escapePointA = {x: obstacle.x + dx, y: obstacle.y - dy};
-        const escapePointB = {x: obstacle.x - dx, y: obstacle.y + dy};
-        const distanceA = Geometry.distance(ship, escapePointA);
-        let distanceB = Geometry.distance(ship, escapePointB);
+        const distanceA = Geometry.distance(to, escapePointA);
+        let distanceB = Geometry.distance(to, escapePointB);
 
         let escapePoint = distanceA < distanceB ? escapePointA : escapePointB;
         escapePoint = findNearestEscapePoint(escapePoint, ship, finalTo, to);
@@ -125,7 +120,7 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
 
     const distance = Geometry.distance(ship, to);
     let angle = Geometry.angleInDegree(ship, to);
-    const speed = Math.max(1, distance >= constants.MAX_SPEED ? constants.MAX_SPEED : distance);
+    let speed = Math.max(1, distance >= constants.MAX_SPEED ? constants.MAX_SPEED : distance);
 
 
     if (insideObstacles.length > 0) {
@@ -171,24 +166,10 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
             return findPath(gameMap, ship, retreatPoint);
         }
 
-        const planetIntersections = gameMap.planets
-            .filter(p => Geometry.distance(p, ship) <= p.radius+ship.radius+circle.radius)
-            .map(p => Geometry.intersectCircles({x: p.x, y: p.y, radius: p.radius+ship.radius}, circle))
-            .map(i => [i[1], i[0]]);
-
-        circleIntersections = circleIntersections.map(c => c[1]).concat(planetIntersections);
+        circleIntersections = circleIntersections.map(c => c[1]);
         const angleIntervals = circleIntersections
-            .map(o => {
-                log.log("circleIntersect: " + JSON.stringify(o));
-                return o;
-            })
             .map(i => i.map(pos => Geometry.angleInDegree(ship, pos)))
-            .map(o => {
-                log.log("toDegree: " + JSON.stringify(o));
-                return o;
-            })
             .map(interval => {
-                log.log(JSON.stringify(interval));
                 if (interval.length === 1)
                     return {start: interval[0], end: interval[0]};
                 else
@@ -197,7 +178,7 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
 
         log.log("intervals: " + JSON.stringify(angleIntervals));
 
-        const intersections = Geometry.angleIntervalIntersections(angleIntervals)
+        let intersections = Geometry.angleIntervalIntersections(angleIntervals)
             .map(i => ({start: Math.ceil(i.start), end: Math.floor(i.end)})); //make real angle
 
         log.log("intersections: " + JSON.stringify(intersections));
@@ -205,18 +186,82 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
             log.log("escape not possible");
             angle = Geometry.inverseWeightedAverageMidpoints(angleIntervals);
         } else {
-            if (!intersections.some(i => Geometry.angleInRange(angle, i.start, i.end))) {
-                const escapeAngles = intersections
-                    .flatMap(i => [i.start, i.end])
-                    .sort((a, b) => Math.abs(Geometry.angleBetween(a, angle)) - Math.abs(Geometry.angleBetween(b, angle)));
+            const planetIntersections = gameMap.planets
+                .filter(p => Geometry.distance(p, ship) <= p.radius+ship.radius+circle.radius)
+                .map(p => [p, Geometry.intersectCircles({x: p.x, y: p.y, radius: p.radius+ship.radius}, circle)])
+                .map(([p, i]) => {
+                    if(Geometry.intersectSegmentCircle(ship, i[0], p, ship.radius)) {
+                        return [p, getEscapePoints(ship, p, ship.radius)];
+                    }
+                    return [p, i.length === 2 ? [i[1], i[0]] : i];
+                })
+                .map(([p,i])=>i)
+                .map(i => i.map(pos => Geometry.angleInDegree(ship, pos)))
+                .map(interval => {
+                    if (interval.length === 1)
+                        return {start: interval[0], end: interval[0]};
+                    else
+                        return {start: interval[0], end: interval[1]};
+                })
+                .map(i => ({start: Math.ceil(i.start), end: Math.floor(i.end)}));
+            log.log("planetIntersections: " + JSON.stringify(planetIntersections));
 
-                angle = escapeAngles[0];
+            if(planetIntersections.length > 0)
+                intersections = Geometry.angleIntervalIntersections(intersections.concat(planetIntersections));
+
+            if (intersections.length === 0) {
+                log.log("colliding with planet on all escape paths");
+
+                const planetEscapes = planetIntersections
+                    .map(i => ({start: Math.ceil(i.start), end: Math.floor(i.end)}))
+                    .flatMap(interval => {
+                        return [interval.start, interval.end];
+                    }).map(angle => {
+                        const pos = Simulation.positionNextTick(ship, 7, angle);
+
+                        const avgDist = insideObstacles
+                            .map(o => Geometry.distance(o, pos))
+                            .reduce((acc, cur) => acc + cur, 0) / insideObstacles.length;
+
+                        return {angle, avgDist};
+                    })
+                    .sort((a, b) => b.avgDist - a.avgDist);
+
+                log.log("planet escape angles(weighted): " + JSON.stringify(planetEscapes));
+
+                angle = planetEscapes[0].angle;
+            } else {
+                if (!intersections.some(i => Geometry.angleInRange(angle, i.start, i.end))) {
+                    const escapeAngles = intersections
+                        .flatMap(i => [i.start, i.end])
+                        .sort((a, b) => Math.abs(Geometry.angleBetween(a, angle)) - Math.abs(Geometry.angleBetween(b, angle)));
+
+                    angle = escapeAngles[0];
+                }
             }
         }
+
+        speed = 7;
     }
 
     log.log(">" + speed + " ø" + angle);
     return {speed, angle};
+}
+
+function getEscapePoints(ship, obstacle, fudge) {
+    const thalesCircle = {
+        x: ship.x + (obstacle.x - ship.x)/2,
+        y: ship.y + (obstacle.y - ship.y)/2,
+        radius: Geometry.distance(ship, obstacle)/2
+    };
+
+    const fudgedObstacle = {
+        x: obstacle.x,
+        y: obstacle.y,
+        radius: obstacle.radius + fudge
+    };
+
+    return Geometry.intersectCircles(thalesCircle, fudgedObstacle);
 }
 
 function findNearestEscapePoint(escapePoint, ship, finalTo, to) {
@@ -233,7 +278,7 @@ function findNearestEscapePoint(escapePoint, ship, finalTo, to) {
 }
 
 function obstaclesBetween(obstacles, from, to) {
-    return obstacles.filter(o => Geometry.intersectSegmentCircle(from, to, o, 0.505))
+    return obstacles.filter(o => Geometry.intersectSegmentCircle(from, to, o, constants.SHIP_RADIUS))
 }
 
 module.exports = {findPath};
