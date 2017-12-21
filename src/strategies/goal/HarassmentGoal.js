@@ -65,7 +65,9 @@ class HarassmentGoal {
         const obstacles = enemies.map(enemy => ({x: enemy.x, y: enemy.y, radius: constants.MAX_SPEED + constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2}));
 
         let targetPos = Geometry.reduceEnd(ship, target, 2);
-        if(Geometry.distance(targetPos, ship) < 2 && enemies.length >= 1) {
+        //run away when we are in attack range of target and enemy is in range
+        //this prevents crashing into target
+        if(Geometry.distance(targetPos, ship) < constants.WEAPON_RADIUS + constants.SHIP_RADIUS && enemies.length >= 1) {
             const averagePos = Geometry.averagePos(enemies);
 
             const vector = Geometry.normalizeVector({
