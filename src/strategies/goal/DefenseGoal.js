@@ -73,14 +73,14 @@ class DefenseGoal {
 
         let shipsStillNeeded = this.enemyCount;
 
-        const producedShips = Simulation.shipsInTurns(this.planet, turnsTillArrival + 1);
+        const producedShips = Simulation.shipsInTurns(this.planet, turnsTillArrival - 1);
         const undockingShips = this.planet.dockedShips.filter(ship => ship.isUndocking());
 
         log.log(producedShips + " ships will be produced");
         log.log(undockingShips.length + " ships are undocking");
 
-        shipsStillNeeded -= producedShips * 1.4;
-        shipsStillNeeded -= undockingShips.length * 1.4;
+        shipsStillNeeded -= producedShips * 1.3;
+        shipsStillNeeded -= undockingShips.length * 1.3;
 
         log.log(shipsStillNeeded + " ships still needed");
 
@@ -98,7 +98,7 @@ class DefenseGoal {
 
         log.log("ships in range: " + sortedShipsInRange.map(tuple => tuple.ship));
 
-        shipsStillNeeded -= sortedShipsInRange.length * 1.4;
+        shipsStillNeeded -= sortedShipsInRange.length * 1.3;
 
         log.log(shipsStillNeeded + " ships still needed");
 
@@ -106,7 +106,7 @@ class DefenseGoal {
 
         if (shipsStillNeeded > 0) {
             const shipsToUndock = attackedShips.filter(ship => ship.isDocked())
-                .slice(0, shipsStillNeeded + producedShips * 1.2)
+                .slice(0, shipsStillNeeded + producedShips * 1.3)
                 .map(ship => new GoalIntent(ship, this, 1));
 
             log.log("undocking " + shipsToUndock.length + " ships");
@@ -127,7 +127,7 @@ class DefenseGoal {
     }
 
     effectivenessPerShip(gameMap, shipSet) {
-        return this.enemyCount;
+        return Math.ceil(this.enemyCount / 1.3);
     }
 
     getShipCommands(gameMap, ships) {
