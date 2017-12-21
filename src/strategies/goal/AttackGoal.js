@@ -56,7 +56,7 @@ class AttackGoal {
                 });
 
                 const escapePadding = gameMap.numberOfPlayers === 2 ? 1 : 3;
-                const escapeDistance = constants.NEXT_TICK_ATTACK_RADIUS + escapePadding;
+                const escapeDistance = constants.NEXT_TICK_ATTACK_RADIUS + constants.SHIP_RADIUS + escapePadding;
                 const retreatPoint = {
                     x: theirClosestShip.x + vector.x * escapeDistance,
                     y: theirClosestShip.y + vector.y * escapeDistance,
