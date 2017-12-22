@@ -252,7 +252,11 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
             }
         }
 
-        speed = 7;
+        const nextPos = Simulation.positionNextTick(ship, speed, angle);
+
+        if(additionalObstacles.some(o => Geometry.distance(nextPos, o) <= o.radius + ship.radius)) {
+            speed = 7;
+        }
     }
 
     log.log(">" + speed + " ø" + angle);
