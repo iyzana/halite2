@@ -44,24 +44,27 @@ class AttackGoal {
             .filter(ship => Geometry.distance(closestShip, ship) < constants.EFFECTIVE_ATTACK_RADIUS + 4);
 
         if (ourBunch.length <= enemies.length) {
-            const theirClosestShip = Simulation.nearestEntity(enemies, closestShip).entity;
-            const vector = Geometry.normalizeVector({
-                x: closestShip.x - theirClosestShip.x,
-                y: closestShip.y - theirClosestShip.y,
-            });
-
-            const escapePadding = gameMap.numberOfPlayers === 2 ? 1 : 3;
-            const escapeDistance = constants.NEXT_TICK_ATTACK_RADIUS + constants.SHIP_RADIUS + escapePadding;
-            const retreatPoint = {
-                x: theirClosestShip.x + vector.x * escapeDistance,
-                y: theirClosestShip.y + vector.y * escapeDistance,
-            };
-
             log.log('running away with ships: ' + ships);
 
-            const obstacles = gameMap.enemyShips.map(enemy => ({x: enemy.x, y: enemy.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
+            const obstacles = gameMap.enemyShips.map(enemy => ({
+                x: enemy.x,
+                y: enemy.y,
+                radius: constants.NEXT_TICK_ATTACK_RADIUS
+            }));
 
             return ships.map(ship => {
+                const theirClosestShip = Simulation.nearestEntity(enemies, ship).entity;
+                const vector = Geometry.normalizeVector({
+                    x: ship.x - theirClosestShip.x,
+                    y: ship.y - theirClosestShip.y,
+                });
+
+                const escapePadding = gameMap.numberOfPlayers === 2 ? 1 : 3;
+                const escapeDistance = constants.NEXT_TICK_ATTACK_RADIUS + constants.SHIP_RADIUS + escapePadding;
+                const retreatPoint = {
+                    x: theirClosestShip.x + vector.x * escapeDistance,
+                    y: theirClosestShip.y + vector.y * escapeDistance,
+                };
                 return AttackGoal.navigateRetreat(gameMap, ship, retreatPoint, obstacles);
             });
         }
