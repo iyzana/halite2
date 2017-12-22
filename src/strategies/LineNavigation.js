@@ -164,7 +164,13 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
             return findPath(gameMap, ship, retreatPoint);
         }
 
-        circleIntersections = circleIntersections.map(c => c[1]);
+        const outsideObstacleIntersections = outsideObstacles
+            .filter(o => Geometry.distance(ship, o) <= o.radius + circle.radius)
+            .map(o => Geometry.intersectCircles(circle, o));
+
+        circleIntersections = circleIntersections
+            .map(c => c[1])
+            .concat(outsideObstacleIntersections);
         const angleIntervals = circleIntersections
             .map(i => i.map(pos => Geometry.angleInDegree(ship, pos)))
             .map(interval => {
