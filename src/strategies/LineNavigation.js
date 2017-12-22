@@ -89,7 +89,7 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
         let distanceB = Geometry.distance(to, escapePointB);
 
         let escapePoint = distanceA < distanceB ? escapePointA : escapePointB;
-        escapePoint = findNearestEscapePoint(escapePoint, ship, finalTo, to);
+        escapePoint = findNearestEscapePoint(escapePoint, ship, finalTo, to, gameMap.planets);
 
         // log.log("escapePointA: " + JSON.stringify(escapePointA));
         // log.log("escapePointB: " + JSON.stringify(escapePointB));
@@ -99,7 +99,7 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
 
         if (!result) {
             escapePoint = distanceA >= distanceB ? escapePointA : escapePointB;
-            escapePoint = findNearestEscapePoint(escapePoint, ship, finalTo, to);
+            escapePoint = findNearestEscapePoint(escapePoint, ship, finalTo, to, gameMap.planets);
 
             log.log("switched escapePoint: " + JSON.stringify(escapePoint));
 
@@ -268,14 +268,15 @@ function getEscapePoints(ship, obstacle, fudge) {
     return Geometry.intersectCircles(thalesCircle, fudgedObstacle);
 }
 
-function findNearestEscapePoint(escapePoint, ship, finalTo, to) {
+function findNearestEscapePoint(escapePoint, ship, finalTo, to, obstacles) {
     let bestEscapePoint = escapePoint;
 
-    // find speed along escapePoint line, which gets the ship closest to the target
+    // find speed along escapePoint line, which gets the ship closest to the target and not inside an obstacle
     for (let i = 1; i <= 7; i++) {
         let consideredEscapePoint = Geometry.reduceEnd(ship, escapePoint, -i);
-        if (Geometry.distance(consideredEscapePoint, finalTo) < Geometry.distance(bestEscapePoint, finalTo) ||
+        if ((Geometry.distance(consideredEscapePoint, finalTo) < Geometry.distance(bestEscapePoint, finalTo) ||
             Geometry.distance(consideredEscapePoint, to) < Geometry.distance(bestEscapePoint, to))
+            && obstacles.every(o => Geometry.distance(consideredEscapePoint, o) > o.radius + ship.radius))
             bestEscapePoint = consideredEscapePoint;
     }
     return bestEscapePoint;
