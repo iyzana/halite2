@@ -187,6 +187,12 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
 
             //TODO: only looks at our current position...we should look some turns into the future
             const wallIntersections = Simulation.intersectWallsWithCircle(gameMap, circle);
+
+            const dockedShipIntersections = gameMap.myShips
+                .filter(s => !s.isUndocked())
+                .filter(s => Geometry.distance(ship, s) < constants.MAX_SPEED + constants.SHIP_RADIUS*2)
+                .map(s => getEscapePoints(ship, s, ship.radius));
+
             const planetIntersections = gameMap.planets
                 .filter(p => Geometry.distance(p, ship) <= p.radius+ship.radius+circle.radius)
                 .map(p => [p, Geometry.intersectCircles({x: p.x, y: p.y, radius: p.radius+ship.radius}, circle)])
@@ -200,6 +206,7 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
 
             const environmentIntersections = planetIntersections
                 .concat(wallIntersections)
+                .concat(dockedShipIntersections)
                 .map(i => i.map(pos => Geometry.angleInDegree(ship, pos)))
                 .map(interval => {
                     if (interval.length === 1)
