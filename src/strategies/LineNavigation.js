@@ -59,11 +59,9 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
 
     const groupedObstacles = additionalObstacles.groupBy(o => Geometry.distance(ship, o) <= o.radius + ship.radius);
     const outsideObstacles = groupedObstacles.filter(e => e.key === false).flatMap(e => e.values) || [];
-    const insideObstacles = groupedObstacles.filter(e => e.key === true).flatMap(e => e.values) || [];
+    let insideObstacles = groupedObstacles.filter(e => e.key === true).flatMap(e => e.values) || [];
 
-    if(insideObstacles.length > 0) {
-        log.log("insideObstacles not empty!");
-    }
+    insideObstacles = insideObstacles.filter(o => obstaclesBetween(gameMap.planets, ship, o, -1).length === 0);
 
     let obstacles = obstaclesBetween(gameMap.planets, ship, to).concat(obstaclesBetween(nearbyShips, ship, to)).concat(obstaclesBetween(outsideObstacles, ship, to));
 
@@ -283,8 +281,9 @@ function findNearestEscapePoint(escapePoint, ship, finalTo, to) {
     return bestEscapePoint;
 }
 
-function obstaclesBetween(obstacles, from, to) {
-    return obstacles.filter(o => Geometry.intersectSegmentCircle(from, to, o, constants.SHIP_RADIUS))
+function obstaclesBetween(obstacles, from, to, fudge) {
+    if(!fudge) fudge = constants.SHIP_RADIUS;
+    return obstacles.filter(o => Geometry.intersectSegmentCircle(from, to, o, fudge))
 }
 
 module.exports = {findPath};
