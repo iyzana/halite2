@@ -35,9 +35,9 @@ function identifyGoals(gameMap) {
 
     enemyShips.forEach(nextEnemy => {
         const nearbyGoal = attackGoals.some(goal => Geometry.distance(nextEnemy, goal.enemy) < 6);
-        const nearbyDefense = defenseGoals.some(goal => Geometry.distance(nextEnemy, goal.planet) < goal.planet.radius + 15);
+        // const nearbyDefense = defenseGoals.some(goal => Geometry.distance(nextEnemy, goal.planet) < goal.planet.radius + 15);
 
-        if (!nearbyGoal && !nearbyDefense) {
+        if (!nearbyGoal) {
             attackGoals.push(new AttackGoal(gameMap, nextEnemy));
         }
     });
@@ -111,7 +111,7 @@ function rateGoals(gameMap, goals) {
                 // goal.score -= densityScore * 0.02 - 0.01;
             }
         } else if (goal instanceof DefenseGoal) {
-            goal.score = 1.1;
+            goal.score = 1.2;
         } else if (goal instanceof AttackGoal) {
             if (goal.enemy.isUndocked()) {
                 goal.score = 1.02;
@@ -158,7 +158,7 @@ function magicLoop(gameMap, shipIntents) {
                     .map(shipIntent => shipIntent.intents[0])
                     .sort((a, b) => b.score - a.score)
                     .slice(max)
-                    .forEach(goalIntent => goalIntent.score -= .02);
+                    .forEach(goalIntent => goalIntent.score -= .01);
             }
         });
     }

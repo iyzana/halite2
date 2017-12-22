@@ -105,7 +105,7 @@ class DefenseGoal {
 
         let requiredShips = [];
 
-        if (shipsStillNeeded > 0) {
+        if (shipsStillNeeded > 0 && attackedShips.filter(ship => ship.isDocked()).length > producedShips) {
             const shipsToUndock = attackedShips.filter(ship => ship.isDocked())
                 .slice(0, shipsStillNeeded + producedShips * defenseBalanceFactor)
                 .map(ship => new GoalIntent(ship, this, 1));
@@ -115,7 +115,7 @@ class DefenseGoal {
             requiredShips = requiredShips.concat(shipsToUndock);
         }
 
-        if (sortedShipsInRange.length > 0 && enemyDistance < 21) {
+        if (sortedShipsInRange.length > 0 && enemyDistance < 15) {
             const shipsToSend = sortedShipsInRange.map(tuple => {
                 const score = 1 - tuple.dist / gameMap.maxDistance;
                 return new GoalIntent(tuple.ship, this, score);
@@ -128,7 +128,7 @@ class DefenseGoal {
     }
 
     effectivenessPerShip(gameMap, shipSet) {
-        return this.enemyCount >= 5 ? 0 : Math.ceil(this.enemyCount / defenseBalanceFactor);
+        return 1; // Math.ceil(this.enemyCount / defenseBalanceFactor);
     }
 
     getShipCommands(gameMap, ships) {
