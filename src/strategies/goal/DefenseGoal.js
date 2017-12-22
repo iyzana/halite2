@@ -7,7 +7,7 @@ const constants = require('../../hlt/Constants');
 const Simulation = require("../Simulation");
 const {findPath} = require("../LineNavigation");
 
-const defenseBalanceFactor = 1.2;
+const defenseBalanceFactor = 1.3;
 class DefenseGoal {
     constructor(gameMap, planet) {
         this.planet = planet;
@@ -128,7 +128,7 @@ class DefenseGoal {
     }
 
     effectivenessPerShip(gameMap, shipSet) {
-        return Math.ceil(this.enemyCount / defenseBalanceFactor);
+        return Math.ceil(this.enemyCount / 1.1);
     }
 
     getShipCommands(gameMap, ships) {
