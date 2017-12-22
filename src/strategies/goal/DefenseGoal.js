@@ -7,6 +7,7 @@ const constants = require('../../hlt/Constants');
 const Simulation = require("../Simulation");
 const {findPath} = require("../LineNavigation");
 
+const defenseBalanceFactor = 1.2;
 class DefenseGoal {
     constructor(gameMap, planet) {
         this.planet = planet;
@@ -79,8 +80,8 @@ class DefenseGoal {
         log.log(producedShips + " ships will be produced");
         log.log(undockingShips.length + " ships are undocking");
 
-        shipsStillNeeded -= producedShips * 1.3;
-        shipsStillNeeded -= undockingShips.length * 1.3;
+        shipsStillNeeded -= producedShips * defenseBalanceFactor;
+        shipsStillNeeded -= undockingShips.length * defenseBalanceFactor;
 
         log.log(shipsStillNeeded + " ships still needed");
 
@@ -98,7 +99,7 @@ class DefenseGoal {
 
         log.log("ships in range: " + sortedShipsInRange.map(tuple => tuple.ship));
 
-        shipsStillNeeded -= sortedShipsInRange.length * 1.3;
+        shipsStillNeeded -= sortedShipsInRange.length * defenseBalanceFactor;
 
         log.log(shipsStillNeeded + " ships still needed");
 
@@ -106,7 +107,7 @@ class DefenseGoal {
 
         if (shipsStillNeeded > 0) {
             const shipsToUndock = attackedShips.filter(ship => ship.isDocked())
-                .slice(0, shipsStillNeeded + producedShips * 1.3)
+                .slice(0, shipsStillNeeded + producedShips * defenseBalanceFactor)
                 .map(ship => new GoalIntent(ship, this, 1));
 
             log.log("undocking " + shipsToUndock.length + " ships");
@@ -127,7 +128,7 @@ class DefenseGoal {
     }
 
     effectivenessPerShip(gameMap, shipSet) {
-        return Math.ceil(this.enemyCount / 1.3);
+        return Math.ceil(this.enemyCount / defenseBalanceFactor);
     }
 
     getShipCommands(gameMap, ships) {
