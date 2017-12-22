@@ -29,6 +29,8 @@ class AttackGoal {
         const enemies = gameMap.enemyShips
             .filter(enemy => Geometry.distance(this.enemy, enemy) < constants.EFFECTIVE_ATTACK_RADIUS + 4);
 
+        if (enemies.length === 1)
+            return 1;
         return Math.ceil(enemies.length * 1.2);
     }
 

@@ -135,9 +135,9 @@ class Simulation {
         const [pos1, pos2] = wallEscapes
             .filter(escape => !Simulation.insideWall(gameMap, escape));
 
-        if(pos1 === undefined || pos2 === undefined) {
+        if (pos1 === undefined || pos2 === undefined) {
             log.log('escape points inside wall!!');
-            return {x:1,y:0};
+            return {x: 1, y: 0};
         }
 
         log.log(`pos: ${pos}, target: ${target.x},${target.y}, escapes: [[${pos1.x},${pos1.y}],[${pos2.x},${pos2.y}]]`);
@@ -261,7 +261,7 @@ class Simulation {
         let newShips = 0;
 
         while (turns > 0) {
-            const dockedShips = ships.filter(ship => ship.status === dockingStatus.DOCKED);
+            const dockedShips = ships.filter(ship => ship.status === dockingStatus.DOCKED).length;
             currentProd += this.productionWithShips(dockedShips);
 
             this.updateDockStates(ships);
