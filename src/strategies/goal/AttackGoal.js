@@ -69,10 +69,10 @@ class AttackGoal {
 
                 log.log('running away with ships: ' + ships);
 
-                const obstacles = gameMap.enemyShips.map(enemy => ({x: enemy.x, y: enemy.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
+                // const obstacles = gameMap.enemyShips.map(enemy => ({x: enemy.x, y: enemy.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
 
                 return ships.map(ship => {
-                    return AttackGoal.navigateRetreat(gameMap, ship, retreatPoint, obstacles);
+                    return AttackGoal.navigateRetreat(gameMap, ship, retreatPoint);
                 });
             }
         }

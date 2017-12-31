@@ -74,7 +74,7 @@ function rateGoals(gameMap, goals) {
 
     goals.forEach(goal => {
         if (goal instanceof DockingGoal) {
-            goal.score = 0.98;
+            goal.score = 0.985;
 
             const distance = Geometry.distance(goal.planet, {x: gameMap.width / 2, y: gameMap.height / 2});
 
