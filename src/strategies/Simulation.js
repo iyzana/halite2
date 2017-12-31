@@ -198,10 +198,13 @@ class Simulation {
      * @param planet planet to calculate for
      * @returns {number} number of ticks
      */
-    static turnsTillNextShip(planet) {
+    static turnsTillNextShip(planet, additionalShips) {
         let ships = planet.dockedShips
             .filter(ship => !ship.isUndocking())
             .map(ship => ({status: ship.dockingStatus, progress: ship.dockingProgress}));
+        if (additionalShips) {
+            ships = ships.concat(additionalShips);
+        }
 
         if (ships.length === 0)
             return Infinity;
@@ -221,10 +224,13 @@ class Simulation {
         return turns;
     }
 
-    static turnsTillFull(planet) {
+    static turnsTillFull(planet, additionalShips) {
         let ships = planet.dockedShips
             .filter(ship => !ship.isUndocking())
             .map(ship => ({status: ship.dockingStatus, progress: ship.dockingProgress}));
+        if (additionalShips) {
+            ships = ships.concat(additionalShips);
+        }
 
         if (ships.length === 0)
             return Infinity;
@@ -249,13 +255,16 @@ class Simulation {
         return turns - 1;
     }
 
-    static shipsInTurns(planet, turns) {
+    static shipsInTurns(planet, turns, additionalShips) {
         let ships = planet.dockedShips
             .filter(ship => !ship.isUndocking())
             .map(ship => ({status: ship.dockingStatus, progress: ship.dockingProgress}));
+        if (additionalShips) {
+            ships = ships.concat(additionalShips);
+        }
 
         if (ships.length === 0)
-            return Infinity;
+            return 0;
 
         let currentProd = planet.currentProduction;
         let newShips = 0;
@@ -284,7 +293,7 @@ class Simulation {
             else if (ship.status === dockingStatus.DOCKING) {
                 ship.progress--;
 
-                if (ship.progress === 0)
+                if (ship.progress <= 0)
                     ship.status = dockingStatus.DOCKED;
             }
         });

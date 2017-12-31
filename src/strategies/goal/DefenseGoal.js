@@ -8,22 +8,22 @@ const Simulation = require("../Simulation");
 const {findPath} = require("../LineNavigation");
 
 const defenseBalanceFactor = 1.3;
+
 class DefenseGoal {
     constructor(gameMap, planet) {
         this.planet = planet;
     }
 
     shipRequests(gameMap) {
-        const myPlanets = gameMap.planets
-            .filter(planet => planet.isOwnedByMe());
         const enemysEnemyPlanets = gameMap.playerIds
             .filter(id => id !== gameMap.myPlayerId)
-            .reduce((acc, c) => (acc[c] = gameMap.planets.filter(p => p.ownerId !== c && p.isOwned())) && acc, {});
+            .map(id => [id, gameMap.planets.filter(p => p.isOwned() && p.ownerId !== id)])
+            .toMap();
 
         log.log("enemyPlanets");
-	Object.keys(enemysEnemyPlanets).forEach(id => {
-	    log.log("enemy " + id + " enemyPlanets: " + enemysEnemyPlanets[id]);
-	});
+        enemysEnemyPlanets.forEach((planets, id) => {
+            log.log("enemy " + id + " enemyPlanets: " + planets);
+        });
 
         const attackingEnemies = gameMap.enemyShips
             .filter(ship => ship.isUndocked())
@@ -46,17 +46,13 @@ class DefenseGoal {
 
                 return onItsWay || aroundHere;
             })
-            .filter(ship => gameMap.planetsBetween(ship, this.planet).length === 0)
-            .filter(enemy => {
-                const otherPlanets = enemysEnemyPlanets[enemy.ownerId].filter(p => p.id !== this.planet.id);
-                const nearest = Simulation.nearestEntity(otherPlanets, enemy);
-                return Geometry.distance(this.planet, enemy) < nearest.dist * 1.6;
-            });
+            .filter(enemy => this.seemsAttacking(enemy, enemysEnemyPlanets.get(enemy.ownerId)));
 
-        const attackedShipDistances = new Map(this.planet.dockedShips
-            .map(ship => [ship.id, Simulation.nearestEntity(attackingEnemies, ship).dist]));
+        const attackedShipDistances = this.planet.dockedShips
+            .map(ship => [ship.id, Simulation.nearestEntity(attackingEnemies, ship).dist])
+            .toMap();
 
-        const attackedShips = this.planet.dockedShips
+        const planetShips = this.planet.dockedShips
             .sort((a, b) => attackedShipDistances.get(a.id) - attackedShipDistances.get(b.id));
 
         // no enemy attacking
@@ -64,7 +60,8 @@ class DefenseGoal {
             return [];
         }
 
-        this.endangeredShip = attackedShips[0];
+        this.endangeredShip = planetShips[0];
+        this.attackingShip = Simulation.nearestEntity(attackingEnemies, this.endangeredShip).entity;
         const enemyDistance = attackedShipDistances.get(this.endangeredShip.id);
         this.enemyCount = attackingEnemies.length;
         const turnsTillArrival = enemyDistance / constants.MAX_SPEED;
@@ -93,7 +90,7 @@ class DefenseGoal {
         // find friendly ships that could defend
         const sortedShipsInRange = gameMap.myShips
             .filter(ship => ship.isUndocked())
-            .map(ship => ({ship, dist: Geometry.distance(ship, this.endangeredShip)}))
+            .map(ship => ({ship: ship, dist: Geometry.distance(ship, this.endangeredShip)}))
             .filter(tuple => tuple.dist < enemyDistance + constants.MAX_SPEED * 2)
             .sort((a, b) => b.dist - a.dist);
 
@@ -105,12 +102,17 @@ class DefenseGoal {
 
         let requiredShips = [];
 
-        if (shipsStillNeeded > 0 && attackedShips.filter(ship => ship.isDocked()).length > producedShips) {
-            const shipsToUndock = attackedShips.filter(ship => ship.isDocked())
-                .slice(0, shipsStillNeeded + producedShips * defenseBalanceFactor)
+        let dockedShips = planetShips.filter(ship => ship.isDocked());
+        // undock if ships are still needed, but only if there are more than would be produced
+        if (shipsStillNeeded > 0 && dockedShips.length > producedShips) {
+            // discard produced ships, cause we need to undock
+            shipsStillNeeded += producedShips * defenseBalanceFactor;
+            const shipsToUndock = dockedShips
+                .slice(0, shipsStillNeeded)
                 .map(ship => new GoalIntent(ship, this, 1));
 
-            log.log("undocking " + shipsToUndock.length + " ships");
+            log.log("undocking " + Math.min(dockedShips.length, shipsStillNeeded) + " ships");
+            shipsStillNeeded -= shipsToUndock.length * defenseBalanceFactor;
 
             requiredShips = requiredShips.concat(shipsToUndock);
         }
@@ -127,8 +129,15 @@ class DefenseGoal {
         return requiredShips;
     }
 
+    seemsAttacking(enemy, enemyPlanets) {
+        const otherPlanets = enemyPlanets.filter(p => p.id !== this.planet.id);
+        const nearest = Simulation.nearestEntity(otherPlanets, enemy);
+        let distance = Geometry.distance(this.planet, enemy);
+        return distance < nearest.dist * 1.6;
+    }
+
     effectivenessPerShip(gameMap, shipSet) {
-        return 1; // Math.ceil(this.enemyCount / defenseBalanceFactor);
+        return Math.ceil(this.enemyCount / 6);
     }
 
     getShipCommands(gameMap, ships) {
@@ -136,7 +145,7 @@ class DefenseGoal {
             if (ship.isDocked())
                 return new ActionDock(ship, this.planet, false);
 
-            return DefenseGoal.navigateDefense(gameMap, ship, this.endangeredShip);
+            return DefenseGoal.navigateDefense(gameMap, ship, this.endangeredShip, this.attackingShip);
         })
     }
 
@@ -144,7 +153,7 @@ class DefenseGoal {
         return "defend->" + this.planet;
     }
 
-    static navigateDefense(gameMap, ship, endangered) {
+    static navigateDefense(gameMap, ship, endangered, attacking) {
         const end = Geometry.reduceEnd(ship, endangered, constants.SHIP_RADIUS * 2.2);
         const {speed, angle} = findPath(gameMap, ship, end);
         return new ActionThrust(ship, speed, angle);

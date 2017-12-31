@@ -58,7 +58,8 @@ function identifyGoals(gameMap) {
 
     const harassPlayerId = enemyAverages[0][0];
     const shipPct = gameMap.myShips.length / (gameMap.myShips.length + gameMap.playerShips(harassPlayerId).length);
-    if (gameMap.numberOfPlayers === 2 && gameMap.playerShips(harassPlayerId).length < 15 && shipPct < 0.75) {
+    let dockedEnemyShipCount = gameMap.playerShips(harassPlayerId).filter(s => !s.isUndocked()).length;
+    if (gameMap.playerShips(harassPlayerId).length < 18 && (shipPct < 0.75 || dockedEnemyShipCount > 0)) {
         const harassmentGoal = new HarassmentGoal(gameMap, harassPlayerId);
 
         goals.push(harassmentGoal);
@@ -123,7 +124,7 @@ function rateGoals(gameMap, goals) {
         } else if (goal instanceof KamikazeGoal) {
             goal.score = 1.9;
         } else if (goal instanceof HarassmentGoal) {
-            goal.score = 1.25;
+            goal.score = gameMap.numberOfPlayers === 2 ? 1.25 : 0;
         }
     });
 

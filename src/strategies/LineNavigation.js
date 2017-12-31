@@ -14,7 +14,7 @@ const log = require('../hlt/Log');
  * @param depth search depth
  * @returns {{speed: number, angle: number}}
  */
-function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
+function findPath(gameMap, ship, to, additionalObstacles, finalTo, depth) {
     if (!additionalObstacles)
         additionalObstacles = [];
     if (!depth) {
@@ -40,17 +40,6 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
 
             if (Geometry.distance(ship, s) <= 2 * constants.MAX_SPEED + 2 * constants.SHIP_RADIUS) {
                 return true;
-            }
-
-            if (Geometry.distance(ship, s) <= 2.5) {
-                return true;
-            }
-
-            if (Geometry.distance(ship, s) <= constants.MAX_SPEED + 2 * constants.SHIP_RADIUS) {
-                const nearestPlanet = Simulation.nearestEntity(gameMap.planets, s);
-
-                if (s.canDock(nearestPlanet.entity))
-                    return true;
             }
 
             return false;
@@ -95,7 +84,7 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
         // log.log("escapePointB: " + JSON.stringify(escapePointB));
         log.log("escapePoint: " + JSON.stringify(escapePoint));
 
-        const result = findPath(gameMap, ship, escapePoint, finalTo, depth + 1, additionalObstacles);
+        const result = findPath(gameMap, ship, escapePoint, additionalObstacles, finalTo, depth + 1);
 
         if (!result) {
             escapePoint = distanceA >= distanceB ? escapePointA : escapePointB;
@@ -103,7 +92,7 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
 
             log.log("switched escapePoint: " + JSON.stringify(escapePoint));
 
-            const result = findPath(gameMap, ship, escapePoint, finalTo, depth + 1, additionalObstacles);
+            const result = findPath(gameMap, ship, escapePoint, additionalObstacles, finalTo, depth + 1);
 
             if (!result && depth === 0)
                 return {speed: 0, angle: 0};
@@ -304,4 +293,4 @@ function obstaclesBetween(obstacles, from, to, fudge) {
     return obstacles.filter(o => Geometry.intersectSegmentCircle(from, to, o, fudge))
 }
 
-module.exports = {findPath};
+module.exports = {findPath, getEscapePoints};

@@ -12,18 +12,18 @@ class KamikazeGoal {
     shipRequests(gameMap) {
         const damageReceiving = gameMap.enemyShips
             .filter(enemy => enemy.isUndocked())
-            .filter(enemy => Geometry.distance(enemy, this.ship) < constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2 - 0.001)
+            .filter(enemy => Geometry.distance(enemy, this.ship) < constants.EFFECTIVE_ATTACK_RADIUS)
             .map(enemy => {
                 const damageSplitBetween = gameMap.allShips
                     .filter(ship => ship.ownerId !== enemy.ownerId)
-                    .filter(ship => Geometry.distance(enemy, ship) < constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2 - 0.001)
+                    .filter(ship => Geometry.distance(enemy, ship) < constants.EFFECTIVE_ATTACK_RADIUS)
                     .length;
 
                 return constants.WEAPON_DAMAGE / damageSplitBetween;
             })
             .reduce((acc, cur) => acc + cur, 0);
 
-        if (damageReceiving < this.ship.health && this.ship.health < 2 * damageReceiving) {
+        if (this.ship.health > damageReceiving && this.ship.health < 2 * damageReceiving) {
             log.log(this.ship + " kamikaze dmg receiving " + damageReceiving + " at health " + this.ship.health);
 
             const targets = gameMap.enemyShips
