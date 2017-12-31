@@ -93,7 +93,7 @@ function rateGoals(gameMap, goals) {
                 goal.score += distance / maxDistance * 0.1 - 0.05;
 
                 const nearestOpponent = Simulation.nearestEntity(gameMap.enemyShips, goal.planet).dist;
-                if (nearestOpponent < goal.planet.radius + 22)
+                if (nearestOpponent < goal.planet.radius + 24)
                     goal.score -= 0.03;
                 else
                     goal.score += 0.025;

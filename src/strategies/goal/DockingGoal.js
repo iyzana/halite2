@@ -13,11 +13,11 @@ class DockingGoal {
     }
 
     shipRequests(gameMap) {
-        const turnsTillFull = Simulation.turnsTillFull(this.planet);
+        const turnsTillNextShip = Simulation.turnsTillNextShip(this.planet);
 
         return gameMap.myShips
             .filter(ship => ship.isUndocked())
-            .filter(ship => this.reachedBefore(ship, turnsTillFull - 2))
+            .filter(ship => this.reachedBefore(ship, turnsTillNextShip - 2))
             .filter(ship => DockingGoal.producedBeforeAttacked(ship, gameMap))
             .map(ship => {
                 const score = 1 - Geometry.distance(ship, this.planet) / gameMap.maxDistance;
