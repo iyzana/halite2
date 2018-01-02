@@ -4,7 +4,6 @@ const constants = require("../../hlt/Constants");
 const ActionDock = require("../ActionDock");
 const ActionThrust = require("../ActionThrust");
 const GoalIntent = require('./GoalIntent');
-const dockingStatus = require('../../hlt/DockingStatus');
 const {findPath} = require("../LineNavigation");
 
 class DockingGoal {
@@ -13,24 +12,21 @@ class DockingGoal {
     }
 
     shipRequests(gameMap) {
-        const turnsTillNextShip = Simulation.turnsTillNextShip(this.planet);
+        const turnsTillNewShip = Simulation.turnsTillNextShip(this.planet);
 
         return gameMap.myShips
             .filter(ship => ship.isUndocked())
-            .filter(ship => this.reachedBefore(ship, turnsTillNextShip - 2))
-            .filter(ship => DockingGoal.producedBeforeAttacked(ship, gameMap))
+            .sort((ship1, ship2) => Geometry.distance(ship1, ship2))
             .map(ship => {
+                const turnsTillEntityReached = Simulation.turnsTillEntityReached(ship, this.planet);
+
+                if (turnsTillEntityReached >= turnsTillNewShip || Simulation.nearestEntity(gameMap.enemyShips, ship).dist < 15) {
+                    return new GoalIntent(ship, this, 0);
+                }
+
                 const score = 1 - Geometry.distance(ship, this.planet) / gameMap.maxDistance;
                 return new GoalIntent(ship, this, score);
             });
-    }
-
-    reachedBefore(ship, limit) {
-        return Simulation.turnsTillEntityReached(ship, this.planet) < limit;
-    }
-
-    static producedBeforeAttacked(ship, gameMap) {
-        return Simulation.nearestEntity(gameMap.enemyShips, ship).dist > 15;
     }
 
     effectivenessPerShip(gameMap, shipSet) {

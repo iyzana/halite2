@@ -1,12 +1,11 @@
 const log = require('../hlt/Log');
 const Geometry = require('../hlt/Geometry');
 const Simulation = require('./Simulation');
-const {getEscapePoints} = require('./LineNavigation');
 const constants = require('../hlt/Constants');
 
 function resolveWallCollisions(gameMap, thrust) {
     const position = Simulation.positionNextTick(thrust.ship, thrust.speed, thrust.angle);
-    if (Simulation.insideWall(gameMap, position)) {
+    if(Simulation.insideWall(gameMap, position)) {
         const escape = Simulation.getWallEscape(gameMap, thrust.ship, position, thrust.speed);
         thrust.speed = Math.min(7, Geometry.distance(thrust.ship, escape));
         thrust.angle = Geometry.angleInDegree(thrust.ship, escape);
@@ -68,22 +67,8 @@ function resolveDestinationConflicts(current, thrusts) {
             return Geometry.distance(next1, next2) <= constants.SHIP_RADIUS * 2.2;
         })
         .forEach(thrust2 => {
-            if (Math.abs(Geometry.angleBetween(current.angle, thrust2.angle)) > 45) {
-                current.angle += 8;
-                thrust2.angle += 8;
-            } else {
-                const value = current.ship.id < thrust2.ship.id ? 8 : -8;
-                current.angle -= value;
-                thrust2.angle += value;
-            }
-
-            current.angle = Geometry.asPositiveAngle(current.angle);
-            thrust2.angle = Geometry.asPositiveAngle(thrust2.angle);
-            thrust2.speed = Math.max(0, thrust2.speed - 0.5);
-
-            log.log("rotating angles for " + current.ship + " to " + current.angle + " and for " + thrust2.ship + " to " + thrust2.angle)
-            // thrust2.speed = Math.max(0, thrust2.speed - 2);
-            // log.log("throttling speed for " + thrust2.ship + " to " + thrust2.speed + " because of " + current.ship);
+            thrust2.speed = Math.max(0, thrust2.speed - 2);
+            log.log("throttling speed for " + thrust2.ship + " to " + thrust2.speed + " because of " + current.ship);
         });
 }
 
@@ -91,11 +76,6 @@ function resolveCollisions(current, thrusts) {
     thrusts
         .filter(thrust2 => current.ship !== thrust2.ship)
         .filter(thrust2 => Geometry.distance(current.ship, thrust2.ship) <= constants.MAX_SPEED * 2 + constants.SHIP_RADIUS * 2)
-        .filter(thrust2 => {
-            let next1 = Simulation.positionNextTick(current.ship, current.speed, current.angle);
-            let next2 = Simulation.positionNextTick(thrust2.ship, thrust2.speed, thrust2.angle);
-            return Geometry.distance(next1, next2) > constants.SHIP_RADIUS * 2.1;
-        })
         .forEach(thrust2 => {
             const t1 = Simulation.toVector(current.speed, current.angle);
             const t2 = Simulation.toVector(thrust2.speed, thrust2.angle);
@@ -122,37 +102,4 @@ function resolveCollisions(current, thrusts) {
         })
 }
 
-function avoidStationaryCollision(current, stationaryObstacles) {
-    const to = Simulation.positionNextTick(current.ship, current.speed, current.angle);
-    const collides = (obstacle) => {
-        return Geometry.intersectSegmentCircle(current.ship, to, obstacle, constants.SHIP_RADIUS + 0.001);
-    };
-    const obstacle = stationaryObstacles
-        .filter(obstacle => collides(obstacle))[0];
-
-    if (obstacle) {
-        const ship = current.ship;
-
-        let [escapePoint1, escapePointB] = getEscapePoints(ship, obstacle, ship.radius);
-
-        const angle1 = Math.floor(Geometry.angleInDegree(ship, escapePoint1) + 1) + 0.00000000001;
-        const angle2 = Math.floor(Geometry.angleInDegree(ship, escapePointB)) + 0.00000000001;
-
-        const difference1 = Math.abs(Geometry.angleBetween(angle1, current.angle));
-        const difference2 = Math.abs(Geometry.angleBetween(angle2, current.angle));
-
-        const escapeAngle = difference1 < difference2 ? angle1 : angle2;
-
-        current.angle = escapeAngle;
-
-        log.log("avoiding collision of " + current.ship + " with " + obstacle + " by setting angle to " + escapeAngle);
-    }
-}
-
-module.exports = {
-    resolveWallCollisions,
-    alignSimilarAngles,
-    resolveDestinationConflicts,
-    resolveCollisions,
-    avoidStationaryCollision
-};
+module.exports = {resolveWallCollisions, alignSimilarAngles, resolveDestinationConflicts, resolveCollisions};

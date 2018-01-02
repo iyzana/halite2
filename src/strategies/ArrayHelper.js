@@ -22,7 +22,3 @@ Array.prototype.groupBy = function (keyFunction) {
         };
     });
 };
-
-Array.prototype.toMap = function() {
-    return new Map(this);
-};

@@ -12,14 +12,16 @@ class HarassmentGoal {
     }
 
     shipRequests(gameMap) {
-        const enemies = gameMap.playerShips(this.player);
+        const enemies = gameMap
+            .playerShips(this.player);
+
         const potentialShips = gameMap.myShips.filter(ship => ship.isUndocked());
 
         if (potentialShips.length === 0)
             return [];
 
         const destination = Geometry.averagePos(enemies);
-        const theChosenOne = Simulation.nearestEntity(potentialShips, destination).entity;
+        const {entity: theChosenOne} = Simulation.nearestEntity(potentialShips, destination);
 
         log.log("requested ship for harassment " + theChosenOne);
 
@@ -80,7 +82,7 @@ class HarassmentGoal {
             };
         }
 
-        const action = findPath(gameMap, ship, targetPos, obstacles);
+        const action = findPath(gameMap, ship, targetPos, targetPos, 0, obstacles);
 
         return [new ActionThrust(ship, action.speed, action.angle)];
     }

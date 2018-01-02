@@ -58,8 +58,7 @@ function identifyGoals(gameMap) {
 
     const harassPlayerId = enemyAverages[0][0];
     const shipPct = gameMap.myShips.length / (gameMap.myShips.length + gameMap.playerShips(harassPlayerId).length);
-    let dockedEnemyShipCount = gameMap.playerShips(harassPlayerId).filter(s => !s.isUndocked()).length;
-    if (gameMap.playerShips(harassPlayerId).length < 18 && (shipPct < 0.75 || dockedEnemyShipCount > 0)) {
+    if (gameMap.numberOfPlayers === 2 && gameMap.playerShips(harassPlayerId).length < 15 && shipPct < 0.75) {
         const harassmentGoal = new HarassmentGoal(gameMap, harassPlayerId);
 
         goals.push(harassmentGoal);
@@ -74,7 +73,7 @@ function rateGoals(gameMap, goals) {
 
     goals.forEach(goal => {
         if (goal instanceof DockingGoal) {
-            goal.score = 0.985;
+            goal.score = 0.98;
 
             const distance = Geometry.distance(goal.planet, {x: gameMap.width / 2, y: gameMap.height / 2});
 
@@ -93,7 +92,7 @@ function rateGoals(gameMap, goals) {
                 goal.score += distance / maxDistance * 0.1 - 0.05;
 
                 const nearestOpponent = Simulation.nearestEntity(gameMap.enemyShips, goal.planet).dist;
-                if (nearestOpponent < goal.planet.radius + 24)
+                if (nearestOpponent < goal.planet.radius + 22)
                     goal.score -= 0.03;
                 else
                     goal.score += 0.025;
@@ -124,7 +123,7 @@ function rateGoals(gameMap, goals) {
         } else if (goal instanceof KamikazeGoal) {
             goal.score = 1.9;
         } else if (goal instanceof HarassmentGoal) {
-            goal.score = gameMap.numberOfPlayers === 2 ? 1.25 : 0;
+            goal.score = 1.25;
         }
     });
 

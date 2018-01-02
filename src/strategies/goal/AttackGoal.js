@@ -9,7 +9,6 @@ const {findPath} = require("../LineNavigation");
 class AttackGoal {
     constructor(gameMap, enemy) {
         this.enemy = enemy;
-        this.BATCHING_RADIUS = constants.EFFECTIVE_ATTACK_RADIUS + 4;
 
         if (this.enemy.isDocked()) {
             this.dockedAt = Simulation.nearestEntity(gameMap.planets, this.enemy).entity;
@@ -28,7 +27,7 @@ class AttackGoal {
 
     effectivenessPerShip(gameMap, shipSet) {
         const enemies = gameMap.enemyShips
-            .filter(enemy => Geometry.distance(this.enemy, enemy) < this.BATCHING_RADIUS);
+            .filter(enemy => Geometry.distance(this.enemy, enemy) < constants.EFFECTIVE_ATTACK_RADIUS + 4);
 
         if (enemies.length === 1)
             return 1;
@@ -38,17 +37,15 @@ class AttackGoal {
     getShipCommands(gameMap, ships) {
         const enemies = gameMap.enemyShips
             .filter(enemy => enemy.isUndocked())
-            .filter(enemy => Geometry.distance(this.enemy, enemy) < this.BATCHING_RADIUS);
+            .filter(enemy => Geometry.distance(this.enemy, enemy) < constants.EFFECTIVE_ATTACK_RADIUS + 4);
 
         const closestShip = Simulation.nearestEntity(ships, this.enemy).entity;
 
         const ourBunch = gameMap.myShips
         // .filter(ship => ship.isUndocked())
-            .filter(ship => Geometry.distance(closestShip, ship) < this.BATCHING_RADIUS);
+            .filter(ship => Geometry.distance(closestShip, ship) < constants.EFFECTIVE_ATTACK_RADIUS + 4);
 
-        const ourHealth = ourBunch.reduce((acc, c) => acc + c.health, 0);
-        const theirHealth = enemies.reduce((acc, c) => acc + c.health, 0);
-        if (ourBunch.length < enemies.length || (ourBunch.length === enemies.length && ourHealth <= theirHealth)) {
+        if (ourBunch.length <= enemies.length) {
             const ourPos = Geometry.averagePos(ships);
             const theirPos = Geometry.averagePos(enemies);
             const theirClosestShip = Simulation.nearestEntity(enemies, closestShip).entity;

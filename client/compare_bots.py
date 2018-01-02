@@ -39,7 +39,7 @@ def _play_game(binary, map_width, map_height, bot_commands):
     :param bot_commands: The commands to run each of the bots
     :return: The game's result string
     """
-    game_run_command = '\"{}\" -d "{} {}" -t -r'.format(binary, map_width, map_height)
+    game_run_command = '\"{}\" -d "{} {}" -t'.format(binary, map_width, map_height)
     for bot_command in bot_commands:
         game_run_command += " \"{}\"".format(bot_command)
     return subprocess.check_output(game_run_command, shell=True).decode()
