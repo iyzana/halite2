@@ -255,7 +255,7 @@ class Simulation {
             .map(ship => ({status: ship.dockingStatus, progress: ship.dockingProgress}));
 
         if (ships.length === 0)
-            return Infinity; // todo: should be 0
+            return 0;
 
         let currentProd = planet.currentProduction;
         let newShips = 0;

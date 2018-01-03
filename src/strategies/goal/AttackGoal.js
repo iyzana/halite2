@@ -43,11 +43,15 @@ class AttackGoal {
         const ourBunch = gameMap.myShips
             .filter(ship => Geometry.distance(closestShip, ship) < GROUPING_RADIUS);
 
-        // todo: test fighting 1v1 with more health
-        if (ourBunch.length <= enemies.length) {
+        const ourHealth = ourBunch.reduce((acc, c) => acc + c.health, 0);
+        const enemyHealth = enemies.reduce((acc, c) => acc + c.health, 0);
+
+        const lessShips = ourBunch.length < enemies.length;
+        const lessHealth = ourHealth <= enemyHealth && ourBunch.length === enemies.length;
+        if (lessShips || lessHealth) {
             const theirClosestShip = Simulation.nearestEntity(enemies, closestShip).entity;
 
-            //only running away when close
+            // only running away when close
             if (Geometry.distance(closestShip, theirClosestShip) < constants.MAX_SPEED + constants.NEXT_TICK_ATTACK_RADIUS) {
                 const vector = Geometry.normalizeVector({
                     x: closestShip.x - theirClosestShip.x,

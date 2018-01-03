@@ -16,14 +16,12 @@ class DockingGoal {
 
         return gameMap.myShips
             .filter(ship => ship.isUndocked())
-            .sort((ship1, ship2) => 1) // todo: remove this sort
             .map(ship => new GoalIntent(ship, this, this.getShipScore(gameMap, ship, turnsTillNewShip)));
     }
 
     getShipScore(gameMap, ship, turnLimit) {
         const turnsTillEntityReached = Simulation.turnsTillEntityReached(ship, this.planet);
 
-        // todo: actually score the ships
         if (turnsTillEntityReached >= turnLimit || Simulation.nearestEntity(gameMap.enemyShips, ship).dist < 15) {
             return 0;
         }
