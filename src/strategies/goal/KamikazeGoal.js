@@ -13,14 +13,7 @@ class KamikazeGoal {
         const damageReceiving = gameMap.enemyShips
             .filter(enemy => enemy.isUndocked())
             .filter(enemy => Geometry.distance(enemy, this.ship) < constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2 - 0.001)
-            .map(enemy => {
-                const damageSplitBetween = gameMap.allShips
-                    .filter(ship => ship.ownerId !== enemy.ownerId)
-                    .filter(ship => Geometry.distance(enemy, ship) < constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2 - 0.001)
-                    .length;
-
-                return constants.WEAPON_DAMAGE / damageSplitBetween;
-            })
+            .map(enemy => this.damageDone(gameMap, enemy))
             .reduce((acc, cur) => acc + cur, 0);
 
         if (damageReceiving < this.ship.health && this.ship.health < 2 * damageReceiving) {
@@ -31,17 +24,28 @@ class KamikazeGoal {
                 .filter(e => Geometry.distance(e, this.ship) < constants.MAX_SPEED + constants.SHIP_RADIUS * 2 - 0.001)
                 .sort((a, b) => b.health - a.health);
 
-            if (targets.length === 0 || targets[0].health < 64) return [];
+            if (targets.length === 0 || targets[0].health < 64)
+                return [];
 
             this.target = targets[0];
 
-            if (gameMap.planetsBetween(this.ship, this.target)) return [];
+            if (gameMap.planetsBetween(this.ship, this.target))
+                return [];
 
             log.log(this);
 
             return [new GoalIntent(this.ship, this, 1)];
         }
         return [];
+    }
+
+    damageDone(gameMap, enemy) {
+        const damageSplitBetween = gameMap.allShips
+            .filter(ship => ship.ownerId !== enemy.ownerId)
+            .filter(ship => Geometry.distance(enemy, ship) < constants.EFFECTIVE_ATTACK_RADIUS)
+            .length;
+
+        return constants.WEAPON_DAMAGE / damageSplitBetween;
     }
 
     effectivenessPerShip(shipSet) {
@@ -53,6 +57,10 @@ class KamikazeGoal {
         const speed = Math.min(7, Geometry.distance(this.ship, this.target) + 1);
 
         return new ActionThrust(this.ship, speed, angle);
+    }
+
+    calculateGoalScore(gameMap) {
+        this.score = 1.9;
     }
 
     toString() {

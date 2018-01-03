@@ -14,7 +14,7 @@ const log = require('../hlt/Log');
  * @param depth search depth
  * @returns {{speed: number, angle: number}}
  */
-function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
+function findPath(gameMap, ship, to, additionalObstacles, finalTo, depth) {
     if (!additionalObstacles)
         additionalObstacles = [];
     if (!depth) {
@@ -38,22 +38,7 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
             if (!s.isUndocked())
                 return true;
 
-            if (Geometry.distance(ship, s) <= 2 * constants.MAX_SPEED + 2 * constants.SHIP_RADIUS) {
-                return true;
-            }
-
-            if (Geometry.distance(ship, s) <= 2.5) {
-                return true;
-            }
-
-            if (Geometry.distance(ship, s) <= constants.MAX_SPEED + 2 * constants.SHIP_RADIUS) {
-                const nearestPlanet = Simulation.nearestEntity(gameMap.planets, s);
-
-                if (s.canDock(nearestPlanet.entity))
-                    return true;
-            }
-
-            return false;
+            return Geometry.distance(ship, s) <= 2 * constants.MAX_SPEED + 2 * constants.SHIP_RADIUS;
         })
         .filter(s => s.id !== ship.id);
 
@@ -95,7 +80,7 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
         // log.log("escapePointB: " + JSON.stringify(escapePointB));
         log.log("escapePoint: " + JSON.stringify(escapePoint));
 
-        const result = findPath(gameMap, ship, escapePoint, finalTo, depth + 1, additionalObstacles);
+        const result = findPath(gameMap, ship, escapePoint, additionalObstacles, finalTo, depth + 1);
 
         if (!result) {
             escapePoint = distanceA >= distanceB ? escapePointA : escapePointB;
@@ -103,7 +88,7 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
 
             log.log("switched escapePoint: " + JSON.stringify(escapePoint));
 
-            const result = findPath(gameMap, ship, escapePoint, finalTo, depth + 1, additionalObstacles);
+            const result = findPath(gameMap, ship, escapePoint, additionalObstacles, finalTo, depth + 1);
 
             if (!result && depth === 0)
                 return {speed: 0, angle: 0};
@@ -120,7 +105,7 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
     let angle = Geometry.angleInDegree(ship, to);
     let speed = Math.max(1, distance >= constants.MAX_SPEED ? constants.MAX_SPEED : distance);
 
-
+    // escape close enemy ships
     if (insideObstacles.length > 0) {
         log.log("inside " + insideObstacles.length + " ships next turn attack radius");
         const circle = {
@@ -139,7 +124,7 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
             .filter(c => c[1].length === 0)
             .map(c => c[0]);
 
-        if(cantEscapeObstacles.length > 0) {
+        if (cantEscapeObstacles.length > 0) {
             //we cant escape but we can try...
             log.log("we're just to close :(");
 
@@ -196,19 +181,19 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
 
             const dockedShipIntersections = gameMap.myShips
                 .filter(s => !s.isUndocked())
-                .filter(s => Geometry.distance(ship, s) < constants.MAX_SPEED + constants.SHIP_RADIUS*2)
+                .filter(s => Geometry.distance(ship, s) < constants.MAX_SPEED + constants.SHIP_RADIUS * 2)
                 .map(s => getEscapePoints(ship, s, ship.radius));
 
             const planetIntersections = gameMap.planets
-                .filter(p => Geometry.distance(p, ship) <= p.radius+ship.radius+circle.radius)
-                .map(p => [p, Geometry.intersectCircles({x: p.x, y: p.y, radius: p.radius+ship.radius}, circle)])
+                .filter(p => Geometry.distance(p, ship) <= p.radius + ship.radius + circle.radius)
+                .map(p => [p, Geometry.intersectCircles({x: p.x, y: p.y, radius: p.radius + ship.radius}, circle)])
                 .map(([p, i]) => {
-                    if(Geometry.intersectSegmentCircle(ship, i[0], p, ship.radius)) {
+                    if (Geometry.intersectSegmentCircle(ship, i[0], p, ship.radius)) {
                         return [p, getEscapePoints(ship, p, ship.radius)];
                     }
                     return [p, i.length === 2 ? [i[1], i[0]] : i];
                 })
-                .map(([p,i])=>i);
+                .map(([p, i]) => i);
 
             const environmentIntersections = planetIntersections
                 .concat(wallIntersections)
@@ -224,7 +209,7 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
 
             log.log("environmentIntersections: " + JSON.stringify(environmentIntersections));
 
-            if(environmentIntersections.length > 0)
+            if (environmentIntersections.length > 0)
                 intersections = Geometry.angleIntervalIntersections(intersections.concat(environmentIntersections));
 
             if (intersections.length === 0) {
@@ -260,7 +245,7 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
 
         const nextPos = Simulation.positionNextTick(ship, speed, angle);
 
-        if(additionalObstacles.some(o => Geometry.distance(nextPos, o) <= o.radius + ship.radius)) {
+        if (additionalObstacles.some(o => Geometry.distance(nextPos, o) <= o.radius + ship.radius)) {
             speed = 7;
         }
     }
@@ -271,9 +256,9 @@ function findPath(gameMap, ship, to, finalTo, depth, additionalObstacles) {
 
 function getEscapePoints(ship, obstacle, fudge) {
     const thalesCircle = {
-        x: ship.x + (obstacle.x - ship.x)/2,
-        y: ship.y + (obstacle.y - ship.y)/2,
-        radius: Geometry.distance(ship, obstacle)/2
+        x: ship.x + (obstacle.x - ship.x) / 2,
+        y: ship.y + (obstacle.y - ship.y) / 2,
+        radius: Geometry.distance(ship, obstacle) / 2
     };
 
     const fudgedObstacle = {
@@ -292,7 +277,7 @@ function findNearestEscapePoint(escapePoint, ship, finalTo, to, obstacles) {
     for (let i = 1; i <= 7; i++) {
         let consideredEscapePoint = Geometry.reduceEnd(ship, escapePoint, -i);
         if ((Geometry.distance(consideredEscapePoint, finalTo) < Geometry.distance(bestEscapePoint, finalTo) ||
-            Geometry.distance(consideredEscapePoint, to) < Geometry.distance(bestEscapePoint, to))
+                Geometry.distance(consideredEscapePoint, to) < Geometry.distance(bestEscapePoint, to))
             && obstacles.every(o => Geometry.distance(consideredEscapePoint, o) > o.radius + ship.radius))
             bestEscapePoint = consideredEscapePoint;
     }
@@ -300,7 +285,7 @@ function findNearestEscapePoint(escapePoint, ship, finalTo, to, obstacles) {
 }
 
 function obstaclesBetween(obstacles, from, to, fudge) {
-    if(!fudge) fudge = constants.SHIP_RADIUS;
+    if (!fudge) fudge = constants.SHIP_RADIUS;
     return obstacles.filter(o => Geometry.intersectSegmentCircle(from, to, o, fudge))
 }
 

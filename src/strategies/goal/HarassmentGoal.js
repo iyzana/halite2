@@ -12,16 +12,14 @@ class HarassmentGoal {
     }
 
     shipRequests(gameMap) {
-        const enemies = gameMap
-            .playerShips(this.player);
-
+        const enemies = gameMap.playerShips(this.player);
         const potentialShips = gameMap.myShips.filter(ship => ship.isUndocked());
 
         if (potentialShips.length === 0)
             return [];
 
         const destination = Geometry.averagePos(enemies);
-        const {entity: theChosenOne} = Simulation.nearestEntity(potentialShips, destination);
+        const theChosenOne = Simulation.nearestEntity(potentialShips, destination).entity;
 
         log.log("requested ship for harassment " + theChosenOne);
 
@@ -52,7 +50,7 @@ class HarassmentGoal {
 
         let target = sortedTargets[0];
 
-        if(!target) {
+        if (!target) {
             target = Simulation.nearestEntity(gameMap.playerShips(this.player), ship).entity;
         }
 
@@ -62,12 +60,16 @@ class HarassmentGoal {
             .filter(enemy => enemy.isUndocked())
             .filter(enemy => Geometry.distance(enemy, ship) < constants.MAX_SPEED * 2 + constants.WEAPON_RADIUS + 2 * constants.SHIP_RADIUS + 1);
 
-        const obstacles = enemies.map(enemy => ({x: enemy.x, y: enemy.y, radius: constants.MAX_SPEED + constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2}));
+        const obstacles = enemies.map(enemy => ({
+            x: enemy.x,
+            y: enemy.y,
+            radius: constants.NEXT_TICK_ATTACK_RADIUS
+        }));
 
         let targetPos = Geometry.reduceEnd(ship, target, 2);
         //run away when we are in attack range of target and enemy is in range
         //this prevents crashing into target
-        if(Geometry.distance(targetPos, ship) < constants.WEAPON_RADIUS + constants.SHIP_RADIUS && enemies.length >= 1) {
+        if (Geometry.distance(targetPos, ship) < constants.WEAPON_RADIUS + constants.SHIP_RADIUS && enemies.length >= 1) {
             const averagePos = Geometry.averagePos(enemies);
 
             const vector = Geometry.normalizeVector({
@@ -82,9 +84,13 @@ class HarassmentGoal {
             };
         }
 
-        const action = findPath(gameMap, ship, targetPos, targetPos, 0, obstacles);
+        const {speed, angle} = findPath(gameMap, ship, targetPos, obstacles);
 
-        return [new ActionThrust(ship, action.speed, action.angle)];
+        return [new ActionThrust(ship, speed, angle)];
+    }
+
+    calculateGoalScore(gameMap) {
+        this.score = 1.25;
     }
 
     toString() {

@@ -5,7 +5,7 @@ const constants = require('../hlt/Constants');
 
 function resolveWallCollisions(gameMap, thrust) {
     const position = Simulation.positionNextTick(thrust.ship, thrust.speed, thrust.angle);
-    if(Simulation.insideWall(gameMap, position)) {
+    if (Simulation.insideWall(gameMap, position)) {
         const escape = Simulation.getWallEscape(gameMap, thrust.ship, position, thrust.speed);
         thrust.speed = Math.min(7, Geometry.distance(thrust.ship, escape));
         thrust.angle = Geometry.angleInDegree(thrust.ship, escape);

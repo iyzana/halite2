@@ -34,12 +34,12 @@ function preprocessMap(gameMap) {
     }
     previousGameMap = gameMap;
 
-    gameMap.maxDistance = Math.sqrt(Math.pow(gameMap.width, 2) + Math.pow(gameMap.height, 2));
-
-    computePlanetHeuristics(gameMap);
+    computeMapStats(gameMap);
 }
 
-function computePlanetHeuristics(gameMap) {
+function computeMapStats(gameMap) {
+    gameMap.maxDistance = Math.sqrt(Math.pow(gameMap.width, 2) + Math.pow(gameMap.height, 2));
+
     gameMap.planetHeuristics = {planetsLength: gameMap.planets.length};
 
     const sortedPlanets = gameMap.planets.sort((a, b) => a.radius - b.radius);
@@ -69,6 +69,7 @@ function computePlanetHeuristics(gameMap) {
         smallest: 0
     };
     gameMap.planets.forEach(p => enemyDistance.average[p.id] = 0);
+    gameMap.populatedPlanetsPct = gameMap.planets.filter(p => p.isOwned()).length / gameMap.planets.length;
 
     const enemyPlanets = gameMap.planets.filter(p => p.isOwnedByEnemy());
 

@@ -6,6 +6,8 @@ const constants = require("../../hlt/Constants");
 const GoalIntent = require('./GoalIntent');
 const {findPath} = require("../LineNavigation");
 
+const GROUPING_RADIUS = constants.EFFECTIVE_ATTACK_RADIUS + 4;
+
 class AttackGoal {
     constructor(gameMap, enemy) {
         this.enemy = enemy;
@@ -19,15 +21,12 @@ class AttackGoal {
     shipRequests(gameMap) {
         return gameMap.myShips
             .filter(ship => ship.isUndocked())
-            .map(ship => {
-                let score = 1 - Geometry.distance(ship, this.enemy) / gameMap.maxDistance;
-                return new GoalIntent(ship, this, score);
-            })
+            .map(ship => new GoalIntent(ship, this, 1 - Geometry.distance(ship, this.enemy) / gameMap.maxDistance));
     }
 
     effectivenessPerShip(gameMap, shipSet) {
         const enemies = gameMap.enemyShips
-            .filter(enemy => Geometry.distance(this.enemy, enemy) < constants.EFFECTIVE_ATTACK_RADIUS + 4);
+            .filter(enemy => Geometry.distance(this.enemy, enemy) < GROUPING_RADIUS);
 
         if (enemies.length === 1)
             return 1;
@@ -37,17 +36,15 @@ class AttackGoal {
     getShipCommands(gameMap, ships) {
         const enemies = gameMap.enemyShips
             .filter(enemy => enemy.isUndocked())
-            .filter(enemy => Geometry.distance(this.enemy, enemy) < constants.EFFECTIVE_ATTACK_RADIUS + 4);
+            .filter(enemy => Geometry.distance(this.enemy, enemy) < GROUPING_RADIUS);
 
         const closestShip = Simulation.nearestEntity(ships, this.enemy).entity;
 
         const ourBunch = gameMap.myShips
-        // .filter(ship => ship.isUndocked())
-            .filter(ship => Geometry.distance(closestShip, ship) < constants.EFFECTIVE_ATTACK_RADIUS + 4);
+            .filter(ship => Geometry.distance(closestShip, ship) < GROUPING_RADIUS);
 
+        // todo: test fighting 1v1 with more health
         if (ourBunch.length <= enemies.length) {
-            const ourPos = Geometry.averagePos(ships);
-            const theirPos = Geometry.averagePos(enemies);
             const theirClosestShip = Simulation.nearestEntity(enemies, closestShip).entity;
 
             //only running away when close
@@ -68,15 +65,11 @@ class AttackGoal {
 
                 // const obstacles = gameMap.enemyShips.map(enemy => ({x: enemy.x, y: enemy.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
 
-                return ships.map(ship => {
-                    return AttackGoal.navigateRetreat(gameMap, ship, retreatPoint);
-                });
+                return ships.map(ship => AttackGoal.navigateRetreat(gameMap, ship, retreatPoint));
             }
         }
 
-        return ships.map(ship => {
-            return AttackGoal.navigateAttack(gameMap, ship, this.enemy);
-        });
+        return ships.map(ship => AttackGoal.navigateAttack(gameMap, ship, this.enemy));
     }
 
     toString() {
@@ -84,7 +77,7 @@ class AttackGoal {
     }
 
     static navigateAttack(gameMap, ship, enemy) {
-        const attackDistance = enemy.isUndocked() ? 0 : constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2 - 1;
+        const attackDistance = enemy.isUndocked() ? 0 : constants.EFFECTIVE_ATTACK_RADIUS - 1;
         const to = Geometry.reduceEnd(ship, enemy, attackDistance);
         const {speed, angle} = findPath(gameMap, ship, to);
         return new ActionThrust(ship, speed, angle);
@@ -94,6 +87,16 @@ class AttackGoal {
         const to = Geometry.reduceEnd(ship, retreatPoint, 0.5);
         const {speed, angle} = findPath(gameMap, ship, to);
         return new ActionThrust(ship, speed, angle);
+    }
+
+    calculateGoalScore(gameMap) {
+        if (this.enemy.isUndocked()) {
+            this.score = 1.02;
+        } else if (this.enemy.isUndocking()) {
+            this.score = 1.045;
+        } else {
+            this.score = 1.04;
+        }
     }
 }
 

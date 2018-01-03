@@ -48,7 +48,7 @@ class Simulation {
 
         //top
         let discriminant = rSq - circle.y ** 2;
-        if(discriminant >= 0) {
+        if (discriminant >= 0) {
             discriminant = Math.sqrt(discriminant);
             intersections.push([{
                 x: circle.x + discriminant,
@@ -61,7 +61,7 @@ class Simulation {
 
         //right
         discriminant = rSq - (gameMap.width - circle.x) ** 2;
-        if(discriminant >= 0) {
+        if (discriminant >= 0) {
             discriminant = Math.sqrt(discriminant);
             intersections.push([{
                 x: gameMap.width,
@@ -75,7 +75,7 @@ class Simulation {
 
         //bottom
         discriminant = rSq - (gameMap.height - circle.y) ** 2;
-        if(discriminant >= 0) {
+        if (discriminant >= 0) {
             discriminant = Math.sqrt(discriminant);
             intersections.push([{
                 x: circle.x + discriminant,
@@ -88,7 +88,7 @@ class Simulation {
 
         //left
         discriminant = rSq - circle.x ** 2;
-        if(discriminant >= 0) {
+        if (discriminant >= 0) {
             discriminant = Math.sqrt(discriminant);
             intersections.push([{
                 x: 0,
@@ -255,7 +255,7 @@ class Simulation {
             .map(ship => ({status: ship.dockingStatus, progress: ship.dockingProgress}));
 
         if (ships.length === 0)
-            return Infinity;
+            return Infinity; // todo: should be 0
 
         let currentProd = planet.currentProduction;
         let newShips = 0;

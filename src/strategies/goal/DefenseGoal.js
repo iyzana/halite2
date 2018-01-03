@@ -8,50 +8,28 @@ const Simulation = require("../Simulation");
 const {findPath} = require("../LineNavigation");
 
 const defenseBalanceFactor = 1.3;
+
 class DefenseGoal {
     constructor(gameMap, planet) {
         this.planet = planet;
     }
 
     shipRequests(gameMap) {
-        const myPlanets = gameMap.planets
-            .filter(planet => planet.isOwnedByMe());
         const enemysEnemyPlanets = gameMap.playerIds
             .filter(id => id !== gameMap.myPlayerId)
-            .reduce((acc, c) => (acc[c] = gameMap.planets.filter(p => p.ownerId !== c && p.isOwned())) && acc, {});
+            .map(id => [id, gameMap.planets.filter(p => p.isOwned() && p.ownerId !== id)])
+            .toMap();
 
         log.log("enemyPlanets");
-	Object.keys(enemysEnemyPlanets).forEach(id => {
-	    log.log("enemy " + id + " enemyPlanets: " + enemysEnemyPlanets[id]);
-	});
+        enemysEnemyPlanets.forEach((planets, id) => {
+            log.log("enemy " + id + " enemyPlanets: " + planets);
+        });
 
         const attackingEnemies = gameMap.enemyShips
-            .filter(ship => ship.isUndocked())
-            .filter(ship => {
-                const previousShip = gameMap.previous.shipById(ship.id);
-                if (!previousShip) return false;
-
-                const vector = Geometry.normalizeVector({
-                    x: ship.x - previousShip.x,
-                    y: ship.y - previousShip.y,
-                });
-                const end = {
-                    x: ship.x + vector.x * 50,
-                    y: ship.y + vector.y * 50,
-                };
-
-                // ship is flying in the direction of our planet
-                const onItsWay = Geometry.intersectSegmentCircle(ship, end, this.planet, constants.DOCK_RADIUS + constants.SHIP_RADIUS);
-                const aroundHere = Geometry.distance(ship, this.planet) < this.planet.radius + constants.DOCK_RADIUS + constants.NEXT_TICK_ATTACK_RADIUS;
-
-                return onItsWay || aroundHere;
-            })
-            .filter(ship => gameMap.planetsBetween(ship, this.planet).length === 0)
-            .filter(enemy => {
-                const otherPlanets = enemysEnemyPlanets[enemy.ownerId].filter(p => p.id !== this.planet.id);
-                const nearest = Simulation.nearestEntity(otherPlanets, enemy);
-                return Geometry.distance(this.planet, enemy) < nearest.dist * 1.6;
-            });
+            .filter(enemy => enemy.isUndocked())
+            .filter(enemy => this.isAttackingPlanet(gameMap, enemy))
+            .filter(enemy => gameMap.planetsBetween(enemy, this.planet).length === 0)
+            .filter(enemy => this.isClosestPlanetForEnemy(enemy, enemysEnemyPlanets.get(enemy.ownerId)));
 
         const attackedShipDistances = new Map(this.planet.dockedShips
             .map(ship => [ship.id, Simulation.nearestEntity(attackingEnemies, ship).dist]));
@@ -94,8 +72,7 @@ class DefenseGoal {
         const sortedShipsInRange = gameMap.myShips
             .filter(ship => ship.isUndocked())
             .map(ship => ({ship, dist: Geometry.distance(ship, this.endangeredShip)}))
-            .filter(tuple => tuple.dist < enemyDistance + constants.MAX_SPEED * 2)
-            .sort((a, b) => b.dist - a.dist);
+            .filter(tuple => tuple.dist < enemyDistance + constants.MAX_SPEED * 2);
 
         log.log("ships in range: " + sortedShipsInRange.map(tuple => tuple.ship));
 
@@ -127,27 +104,59 @@ class DefenseGoal {
         return requiredShips;
     }
 
+    isAttackingPlanet(gameMap, ship) {
+        const previousShip = gameMap.previous.shipById(ship.id);
+        if (!previousShip)
+            return false;
+
+        const vector = Geometry.normalizeVector({
+            x: ship.x - previousShip.x,
+            y: ship.y - previousShip.y,
+        });
+        const end = {
+            x: ship.x + vector.x * 50,
+            y: ship.y + vector.y * 50,
+        };
+
+        // ship is flying in the direction of our planet
+        const onItsWay = Geometry.intersectSegmentCircle(ship, end, this.planet, constants.DOCK_RADIUS + constants.SHIP_RADIUS);
+        const aroundHere = Geometry.distance(ship, this.planet) < this.planet.radius + constants.DOCK_RADIUS + constants.NEXT_TICK_ATTACK_RADIUS;
+
+        return onItsWay || aroundHere;
+    }
+
+    isClosestPlanetForEnemy(enemy, enemyPlanets) {
+        const otherPlanets = enemyPlanets.filter(p => p.id !== this.planet.id);
+        const nearest = Simulation.nearestEntity(otherPlanets, enemy);
+        return Geometry.distance(this.planet, enemy) < nearest.dist * 1.6;
+    }
+
     effectivenessPerShip(gameMap, shipSet) {
         return 1; // Math.ceil(this.enemyCount / defenseBalanceFactor);
     }
 
     getShipCommands(gameMap, ships) {
         return ships.map(ship => {
-            if (ship.isDocked())
+            if (ship.isDocked()) {
                 return new ActionDock(ship, this.planet, false);
-
-            return DefenseGoal.navigateDefense(gameMap, ship, this.endangeredShip);
+            } else {
+                return DefenseGoal.navigateDefense(gameMap, ship, this.endangeredShip);
+            }
         })
-    }
-
-    toString() {
-        return "defend->" + this.planet;
     }
 
     static navigateDefense(gameMap, ship, endangered) {
         const end = Geometry.reduceEnd(ship, endangered, constants.SHIP_RADIUS * 2.2);
         const {speed, angle} = findPath(gameMap, ship, end);
         return new ActionThrust(ship, speed, angle);
+    }
+
+    calculateGoalScore(gameMap) {
+        this.score = 1.2;
+    }
+
+    toString() {
+        return "defend->" + this.planet;
     }
 }
 
