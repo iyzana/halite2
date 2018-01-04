@@ -2,6 +2,8 @@ const Geometry = require('../hlt/Geometry');
 const Simulation = require('./Simulation');
 const constants = require('../hlt/Constants');
 const log = require('../hlt/Log');
+const Planet = require('../hlt/Planet');
+const Ship = require('../hlt/Ship');
 
 /**
  * finds a speed and angle suited for navigating from ship to destination.
@@ -58,7 +60,10 @@ function findPath(gameMap, ship, to, additionalObstacles, finalTo, depth) {
 
         const obstacle = obstacles[0];
 
-        log.log("avoiding obstacle " + obstacle);
+        if (obstacle instanceof Planet || obstacle instanceof Ship)
+            log.log("avoiding obstacle " + obstacle);
+        else
+            log.log("avoiding obstacle [" + obstacle.x + ", " + obstacle.y + " r " + obstacle.radius + "]");
 
         let [escapePointA, escapePointB] = getEscapePoints(ship, obstacle, ship.radius);
 
