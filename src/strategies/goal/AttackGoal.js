@@ -104,11 +104,11 @@ class AttackGoal {
     calculateGoalScore(gameMap) {
         // todo: try scoring by distance from enemy to closest of our planets
         if (this.enemy.isUndocked()) {
-            this.score = 1.01;
+            this.score = 1.02;
         } else if (this.enemy.isUndocking()) {
-            this.score = 1.065;
+            this.score = 1.045;
         } else {
-            this.score = 1.06;
+            this.score = 1.04;
         }
     }
 }
