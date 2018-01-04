@@ -92,7 +92,7 @@ class DefenseGoal {
             requiredShips = requiredShips.concat(shipsToUndock);
         }
 
-        if (sortedShipsInRange.length > 0 && enemyDistance < 20) {
+        if (sortedShipsInRange.length > 0 && enemyDistance < 18) {
             const shipsToSend = sortedShipsInRange.map(tuple => {
                 const score = 1 - tuple.dist / gameMap.maxDistance;
                 return new GoalIntent(tuple.ship, this, score);

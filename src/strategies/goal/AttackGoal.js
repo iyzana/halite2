@@ -85,7 +85,7 @@ class AttackGoal {
             .filter(enemyShip => Geometry.distance(enemy, enemyShip) > 15)
             .map(enemyShip => ({x: enemyShip.x, y: enemyShip.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
 
-        const attackDistance = enemy.isUndocked() ? 1 : constants.EFFECTIVE_ATTACK_RADIUS - 1;
+        const attackDistance = enemy.isUndocked() ? 0 : constants.EFFECTIVE_ATTACK_RADIUS - 1;
         const to = Geometry.reduceEnd(ship, enemy, attackDistance);
         const {speed, angle} = findPath(gameMap, ship, to, enemiesOnTheWay);
         return new ActionThrust(ship, speed, angle);
@@ -104,11 +104,11 @@ class AttackGoal {
     calculateGoalScore(gameMap) {
         // todo: try scoring by distance from enemy to closest of our planets
         if (this.enemy.isUndocked()) {
-            this.score = 1;
+            this.score = 1.01;
         } else if (this.enemy.isUndocking()) {
             this.score = 1.065;
         } else {
-            this.score = 1.1;
+            this.score = 1.06;
         }
     }
 }
