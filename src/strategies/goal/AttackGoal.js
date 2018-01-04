@@ -81,15 +81,23 @@ class AttackGoal {
     }
 
     static navigateAttack(gameMap, ship, enemy) {
+        const enemiesOnTheWay = gameMap.enemyShips
+            .filter(enemyShip => Geometry.distance(enemy, enemyShip) > 15)
+            .map(enemyShip => ({x: enemyShip.x, y: enemyShip.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
+
         const attackDistance = enemy.isUndocked() ? 1 : constants.EFFECTIVE_ATTACK_RADIUS - 1;
         const to = Geometry.reduceEnd(ship, enemy, attackDistance);
-        const {speed, angle} = findPath(gameMap, ship, to);
+        const {speed, angle} = findPath(gameMap, ship, to, enemiesOnTheWay);
         return new ActionThrust(ship, speed, angle);
     }
 
     static navigateRetreat(gameMap, ship, retreatPoint) {
+        const enemiesOnTheWay = gameMap.enemyShips
+            .filter(enemyShip => Geometry.distance(retreatPoint, enemyShip) > 15)
+            .map(enemyShip => ({x: enemyShip.x, y: enemyShip.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
+
         const to = Geometry.reduceEnd(ship, retreatPoint, 0.5);
-        const {speed, angle} = findPath(gameMap, ship, to);
+        const {speed, angle} = findPath(gameMap, ship, to, enemiesOnTheWay);
         return new ActionThrust(ship, speed, angle);
     }
 
@@ -98,7 +106,7 @@ class AttackGoal {
         if (this.enemy.isUndocked()) {
             this.score = 1;
         } else if (this.enemy.isUndocking()) {
-            this.score = 1.045;
+            this.score = 1.065;
         } else {
             this.score = 1.1;
         }
