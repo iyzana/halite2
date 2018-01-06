@@ -40,7 +40,8 @@ function findPath(gameMap, ship, to, additionalObstacles, finalTo, depth) {
             if (!s.isUndocked())
                 return true;
 
-            return Geometry.distance(ship, s) <= 2 * constants.MAX_SPEED + 2 * constants.SHIP_RADIUS;
+            return false;
+            // return Geometry.distance(ship, s) <= 2 * constants.MAX_SPEED + 2 * constants.SHIP_RADIUS;
         })
         .filter(s => s.id !== ship.id);
 
@@ -248,10 +249,11 @@ function findPath(gameMap, ship, to, additionalObstacles, finalTo, depth) {
             }
         }
 
-        const nextPos = Simulation.positionNextTick(ship, speed, angle);
+        let nextPos = Simulation.positionNextTick(ship, speed, angle);
 
-        if (additionalObstacles.some(o => Geometry.distance(nextPos, o) <= o.radius + ship.radius)) {
-            speed = 7;
+        while (speed < 7 && additionalObstacles.some(o => Geometry.distance(nextPos, o) < o.radius + ship.radius)) {
+            speed++;
+            nextPos = Simulation.positionNextTick(ship, speed, angle);
         }
     }
 
@@ -294,4 +296,4 @@ function obstaclesBetween(obstacles, from, to, fudge) {
     return obstacles.filter(o => Geometry.intersectSegmentCircle(from, to, o, fudge))
 }
 
-module.exports = {findPath};
+module.exports = {findPath, getEscapePoints};

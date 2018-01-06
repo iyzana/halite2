@@ -2,8 +2,9 @@ const log = require('../hlt/Log');
 const Geometry = require('../hlt/Geometry');
 
 const ActionThrust = require('./ActionThrust');
+const ActionDock = require('./ActionDock');
 const {getActions} = require('./goal/Goal');
-const {resolveWallCollisions, alignSimilarAngles, resolveDestinationConflicts, resolveCollisions} = require("./CollisionAvoidance");
+const {resolveWallCollisions, alignSimilarAngles, resolveDestinationConflicts, resolveCollisions, avoidStationaryCollision} = require("./CollisionAvoidance");
 
 require('./ArrayHelper');
 
@@ -114,17 +115,32 @@ function computeMapStats(gameMap) {
 }
 
 function postprocessActions(gameMap, actions) {
+    const dockingShips = actions.filter(action => action instanceof ActionDock)
+        .map(action => action.ship);
+    const dockedShips = gameMap.myShips
+        .filter(ship => !ship.isUndocked());
+    const planets = gameMap.planets;
+    const stationaries = [...dockingShips, ...dockedShips, ...planets];
+
     const thrusts = actions.filter(action => action instanceof ActionThrust);
 
     thrusts.forEach(thrust => {
         log.log("1 thrust " + thrust.ship + " => >" + thrust.speed + " ø" + thrust.angle)
     });
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 2; i++) {
         thrusts.forEach(current => alignSimilarAngles(current, thrusts));
         thrusts.forEach(current => resolveDestinationConflicts(current, thrusts));
         thrusts.forEach(current => resolveWallCollisions(gameMap, current));
         thrusts.forEach(current => resolveCollisions(current, thrusts));
+        thrusts.forEach(current => avoidStationaryCollision(current, stationaries));
+        thrusts.forEach(current => {
+            alignSimilarAngles(current, thrusts);
+            resolveDestinationConflicts(current, thrusts);
+            resolveWallCollisions(gameMap, current);
+            resolveCollisions(current, thrusts);
+            avoidStationaryCollision(current, stationaries);
+        });
     }
 
     thrusts.forEach(thrust => {

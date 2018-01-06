@@ -41,6 +41,7 @@ class AttackGoal {
         const closestShip = Simulation.nearestEntity(ships, this.enemy).entity;
 
         const ourBunch = gameMap.myShips
+            .filter(ship => ship.isUndocked())
             .filter(ship => Geometry.distance(closestShip, ship) < GROUPING_RADIUS);
 
         const ourHealth = ourBunch.reduce((acc, c) => acc + c.health, 0);
@@ -58,7 +59,7 @@ class AttackGoal {
                     y: closestShip.y - theirClosestShip.y,
                 });
 
-                const escapePadding = gameMap.numberOfPlayers === 2 ? 1 : 3;
+                const escapePadding = gameMap.numberOfPlayers === 2 ? 3 : 3;
                 const escapeDistance = constants.NEXT_TICK_ATTACK_RADIUS + constants.SHIP_RADIUS + escapePadding;
                 const retreatPoint = {
                     x: theirClosestShip.x + vector.x * escapeDistance,
@@ -67,7 +68,9 @@ class AttackGoal {
 
                 log.log('running away with ships: ' + ships);
 
-                // const obstacles = gameMap.enemyShips.map(enemy => ({x: enemy.x, y: enemy.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
+                // const obstacles = gameMap.enemyShips
+                //     .filter(ship => ship.isUndocked())
+                //     .map(enemy => ({x: enemy.x, y: enemy.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
 
                 return ships.map(ship => AttackGoal.navigateRetreat(gameMap, ship, retreatPoint));
             }
@@ -81,23 +84,15 @@ class AttackGoal {
     }
 
     static navigateAttack(gameMap, ship, enemy) {
-        const enemiesOnTheWay = gameMap.enemyShips
-            .filter(enemyShip => Geometry.distance(enemy, enemyShip) > 15)
-            .map(enemyShip => ({x: enemyShip.x, y: enemyShip.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
-
         const attackDistance = enemy.isUndocked() ? 0 : constants.EFFECTIVE_ATTACK_RADIUS - 1;
         const to = Geometry.reduceEnd(ship, enemy, attackDistance);
-        const {speed, angle} = findPath(gameMap, ship, to, enemiesOnTheWay);
+        const {speed, angle} = findPath(gameMap, ship, to);
         return new ActionThrust(ship, speed, angle);
     }
 
     static navigateRetreat(gameMap, ship, retreatPoint) {
-        const enemiesOnTheWay = gameMap.enemyShips
-            .filter(enemyShip => Geometry.distance(retreatPoint, enemyShip) > 15)
-            .map(enemyShip => ({x: enemyShip.x, y: enemyShip.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
-
         const to = Geometry.reduceEnd(ship, retreatPoint, 0.5);
-        const {speed, angle} = findPath(gameMap, ship, to, enemiesOnTheWay);
+        const {speed, angle} = findPath(gameMap, ship, to);
         return new ActionThrust(ship, speed, angle);
     }
 

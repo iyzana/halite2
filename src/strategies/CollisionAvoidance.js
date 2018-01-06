@@ -2,6 +2,7 @@ const log = require('../hlt/Log');
 const Geometry = require('../hlt/Geometry');
 const Simulation = require('./Simulation');
 const constants = require('../hlt/Constants');
+const {getEscapePoints} = require('./LineNavigation');
 
 function resolveWallCollisions(gameMap, thrust) {
     const position = Simulation.positionNextTick(thrust.ship, thrust.speed, thrust.angle);
@@ -102,4 +103,31 @@ function resolveCollisions(current, thrusts) {
         })
 }
 
-module.exports = {resolveWallCollisions, alignSimilarAngles, resolveDestinationConflicts, resolveCollisions};
+function avoidStationaryCollision(current, stationaryObstacles) {
+    const to = Simulation.positionNextTick(current.ship, current.speed, current.angle);
+    const collides = (obstacle) => {
+        return Geometry.intersectSegmentCircle(current.ship, to, obstacle, constants.SHIP_RADIUS + 0.001);
+    };
+    const obstacle = stationaryObstacles
+        .filter(obstacle => collides(obstacle))[0];
+
+    if (obstacle) {
+        const ship = current.ship;
+
+        let [escapePoint1, escapePointB] = getEscapePoints(ship, obstacle, ship.radius);
+
+        const angle1 = Math.floor(Geometry.angleInDegree(ship, escapePoint1) + 1) + 0.00000000001;
+        const angle2 = Math.floor(Geometry.angleInDegree(ship, escapePointB)) + 0.00000000001;
+
+        const difference1 = Math.abs(Geometry.angleBetween(angle1, current.angle));
+        const difference2 = Math.abs(Geometry.angleBetween(angle2, current.angle));
+
+        const escapeAngle = difference1 < difference2 ? angle1 : angle2;
+
+        current.angle = escapeAngle;
+
+        log.log("avoiding collision of " + current.ship + " with " + obstacle + " by setting angle to " + escapeAngle);
+    }
+}
+
+module.exports = {resolveWallCollisions, alignSimilarAngles, resolveDestinationConflicts, resolveCollisions, avoidStationaryCollision};
