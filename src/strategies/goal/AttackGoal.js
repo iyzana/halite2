@@ -33,15 +33,24 @@ class AttackGoal {
         return Math.ceil(enemies.length * 1.2);
     }
 
-    getShipCommands(gameMap, ships) {
+    getShipCommands(gameMap, ships, grantedShips) {
+        //if we attack a docked enemy it is not in the list(potential empty list)
+        //this is intentional
         const enemies = gameMap.enemyShips
             .filter(enemy => enemy.isUndocked())
             .filter(enemy => Geometry.distance(this.enemy, enemy) < GROUPING_RADIUS);
 
         const closestShip = Simulation.nearestEntity(ships, this.enemy).entity;
 
-        const ourBunch = gameMap.myShips
-            .filter(ship => ship.isUndocked())
+        const ourBunch = enemies
+            .concat(this.enemy.isUndocked() ? [] : [this.enemy])
+            .flatMap(e => {
+                const grantedShip = grantedShips.find(({goal}) => goal instanceof AttackGoal && goal.enemy === e);
+                if (grantedShip) {
+                    return grantedShip.ships;
+                }
+                return [];
+            })
             .filter(ship => Geometry.distance(closestShip, ship) < GROUPING_RADIUS);
 
         const ourHealth = ourBunch.reduce((acc, c) => acc + c.health, 0);

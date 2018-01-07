@@ -18,7 +18,7 @@ function getActions(gameMap) {
 
     const grantedShips = magicLoop(gameMap, requests);
 
-    return grantedShips.flatMap(({goal, ships}) => goal.getShipCommands(gameMap, ships))
+    return grantedShips.flatMap(({goal, ships}) => goal.getShipCommands(gameMap, ships, grantedShips))
 }
 
 function identifyGoals(gameMap) {
