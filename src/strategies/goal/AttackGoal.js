@@ -64,8 +64,8 @@ class AttackGoal {
             // only running away when close
             if (Geometry.distance(closestShip, theirClosestShip) < constants.MAX_SPEED + constants.NEXT_TICK_ATTACK_RADIUS) {
                 const vector = Geometry.normalizeVector({
-                    x: ship.x - theirClosestShip.x,
-                    y: ship.y - theirClosestShip.y,
+                    x: closestShip.x - theirClosestShip.x,
+                    y: closestShip.y - theirClosestShip.y,
                 });
 
                 const escapePadding = gameMap.numberOfPlayers === 2 ? 1 : 3;
@@ -137,7 +137,7 @@ class AttackGoal {
 
             log.log("enemies: " + enemies);
 
-            const intersections = enemies
+            let intersections = enemies
                 .map(e => ({x: e.x, y: e.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}))
                 .map(c => Geometry.intersectCircles(enemyCircle, c))
                 .map(i => i.length === 2 ? [i[1], i[0]] : i)
@@ -150,6 +150,21 @@ class AttackGoal {
                 })
                 .map(i => ({start: Math.ceil(i.start), end: Math.floor(i.end)}));
 
+            const planetIntersections = gameMap.planets
+                .filter(p => Geometry.distance(p, enemyCircle) <= p.radius + enemyCircle.radius)
+                .map(p => Geometry.intersectCircles({x: p.x, y: p.y, radius: p.radius + constants.SHIP_RADIUS}, enemyCircle))
+                .map(i => i.map(pos => Geometry.angleInDegree(enemyCircle, pos)))
+                .map(interval => {
+                    if (interval.length === 1)
+                        return {start: interval[0], end: interval[0]};
+                    else
+                        return {start: interval[0], end: interval[1]};
+                })
+                .map(i => ({start: Math.ceil(i.start), end: Math.floor(i.end)}));
+
+            if(intersections.length !== 0 && planetIntersections.length !== 0)
+            intersections = Geometry.angleIntervalIntersections(planetIntersections.concat(intersections));
+
             log.log("intersections: " + JSON.stringify(intersections));
 
             tuples
@@ -157,11 +172,14 @@ class AttackGoal {
                 .forEach(tuple => {
                     //just fly to attack target and avoid other enemies
                     log.log(tuple.ship + " just flying to target");
-                    const {speed, angle} = findPath(gameMap, tuple.ship, enemy, enemy, 0, enemies);
+                    const {speed, angle} = findPath(gameMap, tuple.ship, enemy, enemies);
                     groupingCommands.push(new ActionThrust(tuple.ship, speed, angle));
                 });
 
             tuples = tuples.filter(t => t.dist <= enemyCircle.radius + constants.MAX_SPEED + constants.SHIP_RADIUS);
+
+
+
 
             const tupleIntersections = tuples
                 .map(t => ({
@@ -193,7 +211,7 @@ class AttackGoal {
                 .forEach(t => {
                     log.log(t.ship + " inside some enemy...navigating to target");
                     //we are inside some enemy
-                    const {speed, angle} = findPath(gameMap, t.ship, enemy, enemy, 0, enemies);
+                    const {speed, angle} = findPath(gameMap, t.ship, enemy, enemies);
                     groupingCommands.push(new ActionThrust(t.ship, speed, angle));
                 });
             tuples = tuples.filter(t => t.intersections.length !== 0);
