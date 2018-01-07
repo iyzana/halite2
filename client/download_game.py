@@ -124,7 +124,7 @@ class DatedGameDownloader(GameDownloader):
 
 
 class UserGameDownloader(GameDownloader):
-    _USER_BOT_URI = 'https://api.halite.io/v1/api/user/{}/match?limit={}'
+    _USER_BOT_URI = 'https://api.halite.io/v1/api/user/{}/match?limit={}&order_by=desc,time_played'
     _BUCKETS = []
 
     def __init__(self, destination, user_id, limit):
