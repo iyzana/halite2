@@ -16,17 +16,17 @@ class DockingGoal {
 
         return gameMap.myShips
             .filter(ship => ship.isUndocked())
-            .sort((ship1, ship2) => Geometry.distance(ship1, ship2))
-            .map(ship => {
-                const turnsTillEntityReached = Simulation.turnsTillEntityReached(ship, this.planet);
+            .map(ship => new GoalIntent(ship, this, this.getShipScore(gameMap, ship, turnsTillNewShip)));
+    }
 
-                if (turnsTillEntityReached >= turnsTillNewShip || Simulation.nearestEntity(gameMap.enemyShips, ship).dist < 15) {
-                    return new GoalIntent(ship, this, 0);
-                }
+    getShipScore(gameMap, ship, turnLimit) {
+        const turnsTillEntityReached = Simulation.turnsTillEntityReached(ship, this.planet);
 
-                const score = 1 - Geometry.distance(ship, this.planet) / gameMap.maxDistance;
-                return new GoalIntent(ship, this, score);
-            });
+        if (turnsTillEntityReached >= turnLimit || Simulation.nearestEntity(gameMap.enemyShips, ship).dist < 15) {
+            return 0;
+        }
+
+        return 1 - Geometry.distance(ship, this.planet) / gameMap.maxDistance;
     }
 
     effectivenessPerShip(gameMap, shipSet) {
@@ -43,14 +43,54 @@ class DockingGoal {
         });
     }
 
-    toString() {
-        return "dock->" + this.planet;
-    }
-
     static navigatePlanet(gameMap, ship, planet) {
         const to = Geometry.reduceEnd(ship, planet, planet.radius + constants.SHIP_RADIUS + 0.05);
         const {speed, angle} = findPath(gameMap, ship, to);
         return new ActionThrust(ship, speed, angle);
+    }
+
+    toString() {
+        return "dock->" + this.planet;
+    }
+
+    calculateGoalScore(gameMap) {
+        this.score = 0.98;
+
+        const distance = Geometry.distance(this.planet, {x: gameMap.width / 2, y: gameMap.height / 2});
+
+        const heuristic = gameMap.planetHeuristics;
+        const radiusDifference = (heuristic.biggestRadius - heuristic.smallestRadius) || heuristic.smallestRadius;
+        const radiusScore = (this.planet.radius - heuristic.smallestRadius) / radiusDifference;
+
+        const distanceDifference = (heuristic.biggestDistances - heuristic.smallestDistances) || heuristic.smallestDistances;
+        const densityScore = (heuristic.planetDistances[this.planet.id].sum - heuristic.smallestDistances) / distanceDifference;
+
+        const enemyDifference = (heuristic.enemyDistance.biggest - heuristic.enemyDistance.smallest) || heuristic.enemyDistance.smallest;
+        const enemyScore = ((heuristic.enemyDistance.average[this.planet.id] - heuristic.enemyDistance.smallest) / enemyDifference);
+
+        if (gameMap.numberOfPlayers === 4 && gameMap.populatedPlanetsPct <= 0.6) {
+            this.score += 0.01;
+            this.score += distance / (gameMap.maxDistance / 2) * 0.1 - 0.05;
+
+            const nearestOpponent = Simulation.nearestEntity(gameMap.enemyShips, this.planet).dist;
+            if (nearestOpponent < this.planet.radius + 22)
+                this.score -= 0.03;
+            else
+                this.score += 0.025;
+
+            this.score += radiusScore * 0.002 - 0.001;
+            this.score += densityScore * 0.02 - 0.01;
+            this.score += enemyScore * 0.02 - 0.01;
+            this.score += this.planet.freeDockingSpots / 6 * 0.1 - 0.05;
+        } else if (gameMap.numberOfPlayers === 2) {
+            const nearestOpponent = Simulation.nearestEntity(gameMap.enemyShips, this.planet).dist;
+            if (nearestOpponent < this.planet.radius + 22)
+                this.score -= 0.03;
+            else
+                this.score += 0.025;
+            this.score += this.planet.freeDockingSpots / 6 * 0.2 - 0.1;
+            // this.score -= densityScore * 0.02 - 0.01;
+        }
     }
 }
 

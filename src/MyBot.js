@@ -1,3 +1,5 @@
+#!/usr/bin/node
+
 const Game = require('./hlt/Game');
 const {strategy} = require('./strategies/Strategy');
 

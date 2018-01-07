@@ -48,7 +48,7 @@ class Simulation {
 
         //top
         let discriminant = rSq - circle.y ** 2;
-        if(discriminant >= 0) {
+        if (discriminant >= 0) {
             discriminant = Math.sqrt(discriminant);
             intersections.push([{
                 x: circle.x + discriminant,
@@ -61,7 +61,7 @@ class Simulation {
 
         //right
         discriminant = rSq - (gameMap.width - circle.x) ** 2;
-        if(discriminant >= 0) {
+        if (discriminant >= 0) {
             discriminant = Math.sqrt(discriminant);
             intersections.push([{
                 x: gameMap.width,
@@ -75,7 +75,7 @@ class Simulation {
 
         //bottom
         discriminant = rSq - (gameMap.height - circle.y) ** 2;
-        if(discriminant >= 0) {
+        if (discriminant >= 0) {
             discriminant = Math.sqrt(discriminant);
             intersections.push([{
                 x: circle.x + discriminant,
@@ -88,7 +88,7 @@ class Simulation {
 
         //left
         discriminant = rSq - circle.x ** 2;
-        if(discriminant >= 0) {
+        if (discriminant >= 0) {
             discriminant = Math.sqrt(discriminant);
             intersections.push([{
                 x: 0,
@@ -135,9 +135,9 @@ class Simulation {
         const [pos1, pos2] = wallEscapes
             .filter(escape => !Simulation.insideWall(gameMap, escape));
 
-        if(pos1 === undefined || pos2 === undefined) {
+        if (pos1 === undefined || pos2 === undefined) {
             log.log('escape points inside wall!!');
-            return {x:1,y:0};
+            return {x: 1, y: 0};
         }
 
         log.log(`pos: ${pos}, target: ${target.x},${target.y}, escapes: [[${pos1.x},${pos1.y}],[${pos2.x},${pos2.y}]]`);
@@ -255,13 +255,13 @@ class Simulation {
             .map(ship => ({status: ship.dockingStatus, progress: ship.dockingProgress}));
 
         if (ships.length === 0)
-            return Infinity;
+            return 0;
 
         let currentProd = planet.currentProduction;
         let newShips = 0;
 
         while (turns > 0) {
-            const dockedShips = ships.filter(ship => ship.status === dockingStatus.DOCKED);
+            const dockedShips = ships.filter(ship => ship.status === dockingStatus.DOCKED).length;
             currentProd += this.productionWithShips(dockedShips);
 
             this.updateDockStates(ships);

@@ -6,6 +6,8 @@ const constants = require("../../hlt/Constants");
 const GoalIntent = require('./GoalIntent');
 const {findPath} = require("../LineNavigation");
 
+const GROUPING_RADIUS = constants.EFFECTIVE_ATTACK_RADIUS + 4;
+
 class AttackGoal {
     constructor(gameMap, enemy) {
         this.enemy = enemy;
@@ -19,41 +21,48 @@ class AttackGoal {
     shipRequests(gameMap) {
         return gameMap.myShips
             .filter(ship => ship.isUndocked())
-            .map(ship => {
-                let score = 1 - Math.floor(Geometry.distance(ship, this.enemy) / constants.MAX_SPEED) * constants.MAX_SPEED / gameMap.maxDistance;
-                return new GoalIntent(ship, this, score);
-            })
+            .map(ship => new GoalIntent(ship, this, 1 - Geometry.distance(ship, this.enemy) / gameMap.maxDistance));
     }
 
     effectivenessPerShip(gameMap, shipSet) {
         const enemies = gameMap.enemyShips
-            .filter(enemy => Geometry.distance(this.enemy, enemy) < constants.EFFECTIVE_ATTACK_RADIUS + 4);
+            .filter(enemy => Geometry.distance(this.enemy, enemy) < GROUPING_RADIUS);
 
+        if (enemies.length === 1)
+            return 1;
         return Math.ceil(enemies.length * 1.2);
     }
 
-    getShipCommands(gameMap, ships) {
+    getShipCommands(gameMap, ships, grantedShips) {
+        //if we attack a docked enemy it is not in the list(potential empty list)
+        //this is intentional
         const enemies = gameMap.enemyShips
             .filter(enemy => enemy.isUndocked())
-            .filter(enemy => Geometry.distance(this.enemy, enemy) < constants.EFFECTIVE_ATTACK_RADIUS + 4);
+            .filter(enemy => Geometry.distance(this.enemy, enemy) < GROUPING_RADIUS);
 
         const closestShip = Simulation.nearestEntity(ships, this.enemy).entity;
 
-        const ourBunch = gameMap.myShips
-            .filter(ship => ship.isUndocked())
-            .filter(ship => Geometry.distance(closestShip, ship) < constants.EFFECTIVE_ATTACK_RADIUS + 4);
+        const ourBunch = enemies
+            .concat(this.enemy.isUndocked() ? [] : [this.enemy])
+            .flatMap(e => {
+                const grantedShip = grantedShips.find(({goal}) => goal instanceof AttackGoal && goal.enemy === e);
+                if (grantedShip) {
+                    return grantedShip.ships;
+                }
+                return [];
+            })
+            .filter(ship => Geometry.distance(closestShip, ship) < GROUPING_RADIUS);
 
-        if (ourBunch.length <= enemies.length) {
-            log.log('running away with ships: ' + ships);
+        const ourHealth = ourBunch.reduce((acc, c) => acc + c.health, 0);
+        const enemyHealth = enemies.reduce((acc, c) => acc + c.health, 0);
 
-            const obstacles = gameMap.enemyShips.map(enemy => ({
-                x: enemy.x,
-                y: enemy.y,
-                radius: constants.NEXT_TICK_ATTACK_RADIUS
-            }));
+        const lessShips = ourBunch.length < enemies.length;
+        const lessHealth = ourHealth <= enemyHealth && ourBunch.length === enemies.length;
+        if (lessShips || lessHealth) {
+            const theirClosestShip = Simulation.nearestEntity(enemies, closestShip).entity;
 
-            return ships.map(ship => {
-                const theirClosestShip = Simulation.nearestEntity(enemies, ship).entity;
+            // only running away when close
+            if (Geometry.distance(closestShip, theirClosestShip) < constants.MAX_SPEED + constants.NEXT_TICK_ATTACK_RADIUS) {
                 const vector = Geometry.normalizeVector({
                     x: ship.x - theirClosestShip.x,
                     y: ship.y - theirClosestShip.y,
@@ -65,8 +74,18 @@ class AttackGoal {
                     x: theirClosestShip.x + vector.x * escapeDistance,
                     y: theirClosestShip.y + vector.y * escapeDistance,
                 };
-                return AttackGoal.navigateRetreat(gameMap, ship, retreatPoint, obstacles);
-            });
+
+                log.log('running away with ships: ' + ships);
+
+                let obstacles = gameMap.enemyShips
+                    .filter(ship => ship.isUndocked())
+                    .map(enemy => ({x: enemy.x, y: enemy.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
+
+                if(ships.length !== 1)
+                    obstacles = [];
+
+                return ships.map(ship => AttackGoal.navigateRetreat(gameMap, ship, retreatPoint, obstacles));
+            }
         }
 
         return AttackGoal.navigateAttack(gameMap, ships, this.enemy);
@@ -83,7 +102,7 @@ class AttackGoal {
             return first + intersection + "}";
         };
 
-        const attackDistance = enemy.isUndocked() ? 0 : constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2 - 1;
+        const attackDistance = enemy.isUndocked() ? 0 : constants.EFFECTIVE_ATTACK_RADIUS - 1;
         let tuples = ships.map(ship => {
             const to = Geometry.reduceEnd(ship, enemy, attackDistance);
             const dist = Geometry.distance(ship, to);
@@ -264,8 +283,31 @@ class AttackGoal {
 
     static navigateRetreat(gameMap, ship, retreatPoint, obstacles) {
         const to = Geometry.reduceEnd(ship, retreatPoint, 0.5);
-        const {speed, angle} = findPath(gameMap, ship, to, to, 0, obstacles);
+        const {speed, angle} = findPath(gameMap, ship, to, obstacles);
         return new ActionThrust(ship, speed, angle);
+    }
+
+    calculateGoalScore(gameMap) {
+        const myPlanets = gameMap.planets.filter(planet => planet.isOwnedByMe());
+
+        const distanceToPlanet = Simulation.nearestEntity(gameMap.planets, this.enemy).dist;
+
+        // todo: try scoring by distance from enemy to closest of our planets
+        if (this.enemy.isUndocked()) {
+            this.score = 1.02;
+        } else if (this.enemy.isUndocking()) {
+            this.score = 1.045;
+        } else {
+            this.score = 1.04;
+            const distanceToMe = Simulation.nearestEntity(myPlanets, this.enemy).dist;
+            if (distanceToMe > 60) {
+                this.score += 0.04;
+            }
+        }
+
+        if (distanceToPlanet > 60) {
+            this.score -= 2;
+        }
     }
 }
 

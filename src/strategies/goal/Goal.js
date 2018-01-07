@@ -12,9 +12,9 @@ const Simulation = require("../Simulation");
 function getActions(gameMap) {
     const goals = identifyGoals(gameMap);
 
-    const ratedGoals = rateGoals(gameMap, goals);
+    goals.forEach(goal => goal.calculateGoalScore(gameMap));
 
-    const requests = calcShipRequests(gameMap, ratedGoals);
+    const requests = calcShipRequests(gameMap, goals);
 
     const grantedShips = magicLoop(gameMap, requests);
 
@@ -24,7 +24,7 @@ function getActions(gameMap) {
     });
     log.log("");
 
-    return grantedShips.flatMap(({goal, ships}) => goal.getShipCommands(gameMap, ships))
+    return grantedShips.flatMap(({goal, ships}) => goal.getShipCommands(gameMap, ships, grantedShips))
 }
 
 function identifyGoals(gameMap) {
@@ -41,6 +41,7 @@ function identifyGoals(gameMap) {
 
     enemyShips.forEach(nextEnemy => {
         const nearbyGoal = attackGoals.some(goal => Geometry.distance(nextEnemy, goal.enemy) < 6);
+        // const nearbyDefense = defenseGoals.some(goal => Geometry.distance(nextEnemy, goal.planet) < goal.planet.radius + 15);
 
         if (!nearbyGoal) {
             attackGoals.push(new AttackGoal(gameMap, nextEnemy));
@@ -68,69 +69,6 @@ function identifyGoals(gameMap) {
 
         goals.push(harassmentGoal);
     }
-
-    return goals;
-}
-
-function rateGoals(gameMap, goals) {
-    const maxDistance = gameMap.maxDistance / 2;
-    const populatedPlanetsPct = gameMap.planets.filter(p => p.isOwned()).length / gameMap.planets.length;
-
-    goals.forEach(goal => {
-        if (goal instanceof DockingGoal) {
-            goal.score = 0.98;
-
-            const distance = Geometry.distance(goal.planet, {x: gameMap.width / 2, y: gameMap.height / 2});
-
-            const heuristic = gameMap.planetHeuristics;
-            const radiusDifference = (heuristic.biggestRadius - heuristic.smallestRadius) || heuristic.smallestRadius;
-            const radiusScore = (goal.planet.radius - heuristic.smallestRadius) / radiusDifference;
-
-            const distanceDifference = (heuristic.biggestDistances - heuristic.smallestDistances) || heuristic.smallestDistances;
-            const densityScore = (heuristic.planetDistances[goal.planet.id].sum - heuristic.smallestDistances) / distanceDifference;
-
-            const enemyDifference = (heuristic.enemyDistance.biggest - heuristic.enemyDistance.smallest) || heuristic.enemyDistance.smallest;
-            const enemyScore = ((heuristic.enemyDistance.average[goal.planet.id] - heuristic.enemyDistance.smallest) / enemyDifference);
-
-            if (gameMap.numberOfPlayers === 4 && populatedPlanetsPct <= 0.6) {
-                goal.score += 0.01;
-                goal.score += distance / maxDistance * 0.1 - 0.05;
-
-                const nearestOpponent = Simulation.nearestEntity(gameMap.enemyShips, goal.planet).dist;
-                if (nearestOpponent < goal.planet.radius + 22)
-                    goal.score -= 0.03;
-                else
-                    goal.score += 0.025;
-
-                goal.score += radiusScore * 0.002 - 0.001;
-                goal.score += densityScore * 0.02 - 0.01;
-                goal.score += enemyScore * 0.02 - 0.01;
-                goal.score += goal.planet.freeDockingSpots / 6 * 0.1 - 0.05;
-            } else if (gameMap.numberOfPlayers === 2) {
-                const nearestOpponent = Simulation.nearestEntity(gameMap.enemyShips, goal.planet).dist;
-                if (nearestOpponent < goal.planet.radius + 22)
-                    goal.score -= 0.03;
-                else
-                    goal.score += 0.025;
-                goal.score += goal.planet.freeDockingSpots / 6 * 0.2 - 0.1;
-                // goal.score -= densityScore * 0.02 - 0.01;
-            }
-        } else if (goal instanceof DefenseGoal) {
-            goal.score = 1;
-        } else if (goal instanceof AttackGoal) {
-            if (goal.enemy.isUndocked()) {
-                goal.score = 1.02;
-            } else if (goal.enemy.isUndocking()) {
-                goal.score = 1.045;
-            } else {
-                goal.score = 1.04;
-            }
-        } else if (goal instanceof KamikazeGoal) {
-            goal.score = 1.9;
-        } else if (goal instanceof HarassmentGoal) {
-            goal.score = 1.25;
-        }
-    });
 
     return goals;
 }
