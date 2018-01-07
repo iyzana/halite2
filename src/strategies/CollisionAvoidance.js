@@ -75,6 +75,7 @@ function resolveDestinationConflicts(current, thrusts) {
         })
         .forEach(thrust2 => {
             thrust2.speed = Math.max(0, thrust2.speed - 2);
+            thrust2.angle += 7;
             log.log("throttling speed for " + thrust2.ship + " to " + thrust2.speed + " because of " + current.ship);
         });
 }
