@@ -97,6 +97,10 @@ class AttackGoal {
     }
 
     calculateGoalScore(gameMap) {
+        const myPlanets = gameMap.planets.filter(planet => planet.isOwnedByMe());
+
+        const distanceToPlanet = Simulation.nearestEntity(gameMap.planets, this.enemy).dist;
+
         // todo: try scoring by distance from enemy to closest of our planets
         if (this.enemy.isUndocked()) {
             this.score = 1.02;
@@ -104,6 +108,14 @@ class AttackGoal {
             this.score = 1.045;
         } else {
             this.score = 1.04;
+            const distanceToMe = Simulation.nearestEntity(myPlanets, this.enemy).dist;
+            if (distanceToMe > 60) {
+                this.score += 0.04;
+            }
+        }
+
+        if (distanceToPlanet > 60) {
+            this.score -= 2;
         }
     }
 }
