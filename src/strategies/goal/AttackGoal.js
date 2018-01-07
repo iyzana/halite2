@@ -77,11 +77,14 @@ class AttackGoal {
 
                 log.log('running away with ships: ' + ships);
 
-                // const obstacles = gameMap.enemyShips
-                //     .filter(ship => ship.isUndocked())
-                //     .map(enemy => ({x: enemy.x, y: enemy.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
+                let obstacles = gameMap.enemyShips
+                    .filter(ship => ship.isUndocked())
+                    .map(enemy => ({x: enemy.x, y: enemy.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
 
-                return ships.map(ship => AttackGoal.navigateRetreat(gameMap, ship, retreatPoint));
+                if(ships.length !== 1)
+                    obstacles = [];
+
+                return ships.map(ship => AttackGoal.navigateRetreat(gameMap, ship, retreatPoint, obstacles));
             }
         }
 
@@ -99,9 +102,9 @@ class AttackGoal {
         return new ActionThrust(ship, speed, angle);
     }
 
-    static navigateRetreat(gameMap, ship, retreatPoint) {
+    static navigateRetreat(gameMap, ship, retreatPoint, obstacles) {
         const to = Geometry.reduceEnd(ship, retreatPoint, 0.5);
-        const {speed, angle} = findPath(gameMap, ship, to);
+        const {speed, angle} = findPath(gameMap, ship, to, obstacles);
         return new ActionThrust(ship, speed, angle);
     }
 
