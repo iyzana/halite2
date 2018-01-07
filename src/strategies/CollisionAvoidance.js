@@ -119,10 +119,25 @@ function avoidStationaryCollision(current, stationaryObstacles) {
         const angle1 = Math.floor(Geometry.angleInDegree(ship, escapePoint1) + 1) + 0.00000000001;
         const angle2 = Math.floor(Geometry.angleInDegree(ship, escapePointB)) + 0.00000000001;
 
-        const difference1 = Math.abs(Geometry.angleBetween(angle1, current.angle));
-        const difference2 = Math.abs(Geometry.angleBetween(angle2, current.angle));
+        const to1 = Simulation.positionNextTick(current.ship, current.speed, angle1);
+        const collides1 = stationaryObstacles.some((obstacle) => {
+            return Geometry.intersectSegmentCircle(current.ship, to1, obstacle, constants.SHIP_RADIUS + 0.001);
+        });
+        const to2 = Simulation.positionNextTick(current.ship, current.speed, angle2);
+        const collides2 = stationaryObstacles.some((obstacle) => {
+            return Geometry.intersectSegmentCircle(current.ship, to2, obstacle, constants.SHIP_RADIUS + 0.001);
+        });
 
-        const escapeAngle = difference1 < difference2 ? angle1 : angle2;
+        let escapeAngle;
+
+        if (collides1 && !collides2 || !collides1 && collides2) {
+            escapeAngle = collides1 ? angle2 : angle1;
+        } else {
+            const difference1 = Math.abs(Geometry.angleBetween(angle1, current.angle));
+            const difference2 = Math.abs(Geometry.angleBetween(angle2, current.angle));
+
+            escapeAngle = difference1 < difference2 ? angle1 : angle2;
+        }
 
         current.angle = escapeAngle;
 
@@ -130,4 +145,10 @@ function avoidStationaryCollision(current, stationaryObstacles) {
     }
 }
 
-module.exports = {resolveWallCollisions, alignSimilarAngles, resolveDestinationConflicts, resolveCollisions, avoidStationaryCollision};
+module.exports = {
+    resolveWallCollisions,
+    alignSimilarAngles,
+    resolveDestinationConflicts,
+    resolveCollisions,
+    avoidStationaryCollision
+};
