@@ -29,6 +29,12 @@ function alignSimilarAngles(current, thrusts) {
             const thrustAngle = Geometry.angleBetween(current.angle, thrust2.angle);
             // check if thrustShipAngle and thrustAngle have the same sign
             return Math.abs(thrustAngle) < 5 && thrustShipAngle * thrustAngle >= 0;
+        })
+        .filter(thrust => {
+            const t1 = Simulation.toVector(current.speed, current.angle);
+            const t2 = Simulation.toVector(thrust.speed, thrust.angle);
+            const {collision} = Simulation.collisionTime(constants.SHIP_RADIUS * 2, current.ship, thrust.ship, t1, t2);
+            return collision;
         });
 
     if (similarThrusts.length === 1)
