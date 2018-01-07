@@ -74,8 +74,14 @@ function resolveDestinationConflicts(current, thrusts) {
             return Geometry.distance(next1, next2) <= constants.SHIP_RADIUS * 2.2;
         })
         .forEach(thrust2 => {
-            thrust2.speed = Math.max(0, thrust2.speed - 2);
-            thrust2.angle += 7;
+            const angle = Geometry.angleBetween(thrust2.angle, Geometry.angleInDegree(thrust2.ship, current.ship));
+            if (angle > -90 && angle < 90) {
+                thrust2.angle += 7;
+                thrust2.speed = Math.max(0, thrust2.speed - 1);
+            } else {
+                current.angle += 7;
+                current.speed = Math.max(0, current.speed - 1);
+            }
             log.log("throttling speed for " + thrust2.ship + " to " + thrust2.speed + " because of " + current.ship);
         });
 }
