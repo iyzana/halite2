@@ -1,5 +1,6 @@
 const log = require('../hlt/Log');
 const Geometry = require('../hlt/Geometry');
+const cluster = require('./Cluster');
 
 const ActionThrust = require('./ActionThrust');
 const ActionDock = require('./ActionDock');
@@ -112,6 +113,10 @@ function computeMapStats(gameMap) {
             if (sum > gameMap.planetHeuristics.biggestDistances)
                 gameMap.planetHeuristics.biggestDistances = sum;
         });
+
+    gameMap.myShipClusters = cluster(gameMap.myShips)
+        .filter(cluster => cluster.length > 1);
+    log.log("clusters: " + gameMap.myShipClusters);
 }
 
 function postprocessActions(gameMap, actions) {
