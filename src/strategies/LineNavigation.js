@@ -187,7 +187,7 @@ function findPath(gameMap, ship, to, additionalObstacles, finalTo, depth) {
 
             const dockedShipIntersections = gameMap.myShips
                 .filter(s => !s.isUndocked())
-                .filter(s => Geometry.distance(ship, s) < constants.MAX_SPEED + constants.SHIP_RADIUS * 2)
+                .filter(s => Geometry.distance(ship, s) < constants.MAX_SPEED + constants.SHIP_RADIUS*2)
                 .map(s => getEscapePoints(ship, s, ship.radius));
 
             const planetIntersections = gameMap.planets

@@ -88,18 +88,215 @@ class AttackGoal {
             }
         }
 
-        return ships.map(ship => AttackGoal.navigateAttack(gameMap, ship, this.enemy));
+        return AttackGoal.navigateAttack(gameMap, ships, this.enemy);
     }
 
     toString() {
         return "attack->" + this.enemy;
     }
 
-    static navigateAttack(gameMap, ship, enemy) {
+    static navigateAttack(gameMap, ships, enemy) {
+        const tupleString = (t) => {
+            const first = `{${t.ship.toString()}, to:[${t.to.x}, ${t.to.y}], turns:${t.turns}`;
+            const intersection = t.intersections ? ", i: " + JSON.stringify(t.intersections) : "";
+            return first + intersection + "}";
+        };
+
         const attackDistance = enemy.isUndocked() ? 0 : constants.EFFECTIVE_ATTACK_RADIUS - 1;
-        const to = Geometry.reduceEnd(ship, enemy, attackDistance);
-        const {speed, angle} = findPath(gameMap, ship, to);
-        return new ActionThrust(ship, speed, angle);
+        let tuples = ships.map(ship => {
+            const to = Geometry.reduceEnd(ship, enemy, attackDistance);
+            const dist = Geometry.distance(ship, to);
+            const turns = Math.floor(dist / constants.MAX_SPEED);
+            return {ship, to, turns, dist};
+        }).sort((a, b) => a.dist - b.dist);
+
+        if (!enemy.isUndocked() || tuples.length < 2 || tuples[1].dist - tuples[0].dist < constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2) {
+            //the two closest ships can reach the enemy in the same number of turns or the enemy is docked
+            return tuples.map(t => {
+                const {speed, angle} = findPath(gameMap, t.ship, t.to);
+                return new ActionThrust(t.ship, speed, angle);
+            });
+        } else {
+            log.log("attack->" + enemy);
+            log.log("grouping with ships: " + ships);
+            //we should group first
+            const groupingCommands = [];
+
+            //TODO better grouping
+
+            const enemyCircle = {
+                x: enemy.x,
+                y: enemy.y,
+                radius: constants.NEXT_TICK_ATTACK_RADIUS
+            };
+
+            const enemies = gameMap.enemyShips
+                .filter(e => e.isUndocked())
+                .filter(e => e !== enemy)
+                .filter(e => Geometry.distance(enemy, e) < constants.EFFECTIVE_ATTACK_RADIUS);
+
+            log.log("enemies: " + enemies);
+
+            let intersections = enemies
+                .map(e => ({x: e.x, y: e.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}))
+                .map(c => Geometry.intersectCircles(enemyCircle, c))
+                .map(i => i.length === 2 ? [i[1], i[0]] : i)
+                .map(i => i.map(pos => Geometry.angleInDegree(enemy, pos)))
+                .map(interval => {
+                    if (interval.length === 1)
+                        return {start: interval[0], end: interval[0]};
+                    else
+                        return {start: interval[0], end: interval[1]};
+                })
+                .map(i => ({start: Math.ceil(i.start), end: Math.floor(i.end)}));
+
+            const planetIntersections = gameMap.planets
+                .filter(p => Geometry.distance(p, enemyCircle) <= p.radius + enemyCircle.radius)
+                .map(p => Geometry.intersectCircles({x: p.x, y: p.y, radius: p.radius + constants.SHIP_RADIUS}, enemyCircle))
+                .map(i => i.map(pos => Geometry.angleInDegree(enemyCircle, pos)))
+                .map(interval => {
+                    if (interval.length === 1)
+                        return {start: interval[0], end: interval[0]};
+                    else
+                        return {start: interval[0], end: interval[1]};
+                })
+                .map(i => ({start: Math.ceil(i.start), end: Math.floor(i.end)}));
+
+            if(intersections.length !== 0 && planetIntersections.length !== 0)
+            intersections = Geometry.angleIntervalIntersections(planetIntersections.concat(intersections));
+
+            log.log("intersections: " + JSON.stringify(intersections));
+
+            tuples
+                .filter(t => t.dist > enemyCircle.radius + constants.MAX_SPEED + constants.SHIP_RADIUS)
+                .forEach(tuple => {
+                    //just fly to attack target and avoid other enemies
+                    log.log(tuple.ship + " just flying to target");
+                    const {speed, angle} = findPath(gameMap, tuple.ship, enemy, enemies);
+                    groupingCommands.push(new ActionThrust(tuple.ship, speed, angle));
+                });
+
+            tuples = tuples.filter(t => t.dist <= enemyCircle.radius + constants.MAX_SPEED + constants.SHIP_RADIUS);
+
+
+
+
+            const tupleIntersections = tuples
+                .map(t => ({
+                    x: t.ship.x,
+                    y: t.ship.y,
+                    radius: constants.MAX_SPEED + constants.SHIP_RADIUS
+                }))
+                .map(c => Geometry.intersectCircles(c, enemyCircle))
+                .map(i => i.map(pos => Geometry.angleInDegree(enemy, pos)))
+                .map(interval => {
+                    if (interval.length === 0)
+                        return [];
+                    else if (interval.length === 1)
+                        return [{start: Math.ceil(interval[0]), end: Math.floor(interval[0])}];
+                    else
+                        return [{start: Math.ceil(interval[0]), end: Math.floor(interval[1])}];
+                })
+                .map(i => intersections.length === 0 ? i : Geometry.angleIntervalIntersections(intersections.concat(i)));
+
+            //dirty hack //TODO: do this in some better way
+            tuples.forEach((tuple, index) => {
+                tuple.intersections = tupleIntersections[index];
+            });
+
+            log.log("tupleIntersections" + tuples.map(tupleString));
+
+            tuples
+                .filter(t => t.intersections.length === 0)
+                .forEach(t => {
+                    log.log(t.ship + " inside some enemy...navigating to target");
+                    //we are inside some enemy
+                    const {speed, angle} = findPath(gameMap, t.ship, enemy, enemies);
+                    groupingCommands.push(new ActionThrust(t.ship, speed, angle));
+                });
+            tuples = tuples.filter(t => t.intersections.length !== 0);
+
+            const groups = [];
+
+            tuples.forEach(t => {
+                let groupFound = false;
+                groups.forEach(g => {
+                    if (!groupFound) {
+                        const intersection = Geometry.angleIntervalIntersections([g.intersection].concat(t.intersections));
+                        if (intersection.length > 0) {
+                            g.intersection = intersection[0];
+                            g.tuples.push(t);
+                            groupFound = true;
+                        }
+                    }
+                });
+
+                if (!groupFound) {
+                    groups.push({
+                        intersection: t.intersections[0],
+                        tuples: [t],
+                    });
+                }
+            });
+
+            groups.forEach(g => {
+                log.log("g=int: " + JSON.stringify(g.intersection) + ", t:" + g.tuples.map(tupleString));
+                const groupingAngle = Geometry.averageAngle(g.intersection.start, g.intersection.end);
+                log.log("angle: " + groupingAngle);
+
+                const initalGroupingPosition = {
+                    x: enemy.x + constants.NEXT_TICK_ATTACK_RADIUS * Math.cos(Geometry.toRad(groupingAngle)),
+                    y: enemy.y + constants.NEXT_TICK_ATTACK_RADIUS * Math.sin(Geometry.toRad(groupingAngle)),
+                    radius: 1,
+                };
+
+                log.log(`pos: [${initalGroupingPosition.x}, ${initalGroupingPosition.y}]`);
+
+                const groupingPositions = [initalGroupingPosition];
+                let i = 0;
+                while (groupingPositions.length < g.tuples.length) {
+                    i++;
+                    if (i > 5) break;
+
+                    if (groupingPositions.length === 1) {
+                        const newPositions = Geometry.intersectCircles(initalGroupingPosition, enemyCircle);
+                        newPositions.forEach(p => {
+                            p.radius = 1;
+                        });
+                        groupingPositions.concat(newPositions);
+                        continue;
+                    }
+
+                    const generateFrom = groupingPositions[groupingPositions.length - 2];
+                    const intersections = Geometry.intersectCircles(generateFrom, enemyCircle);
+                    intersections.forEach(i => {
+                        i.radius = 1;
+                        if (!groupingPositions.some(p => p.x === i.x && p.y === i.y)) {
+                            groupingPositions.push(i);
+                        }
+                    });
+
+                }
+
+                groupingPositions.forEach((p, i) => log.log(`pos(${i}): [${p.x}, ${p.y}]`));
+
+                g.tuples.forEach(t => {
+                    let minDistance = Infinity;
+                    let minPosition;
+                    groupingPositions.forEach(pos => {
+                        const dist = Geometry.distance(pos, t.ship);
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            minPosition = pos;
+                        }
+                    });
+                    const {speed, angle} = findPath(gameMap, t.ship, initalGroupingPosition);
+                    groupingCommands.push(new ActionThrust(t.ship, speed, angle));
+                });
+            });
+
+            return groupingCommands;
+        }
     }
 
     static navigateRetreat(gameMap, ship, retreatPoint, obstacles) {
