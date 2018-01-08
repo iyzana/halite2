@@ -56,8 +56,8 @@ class AttackGoal {
         const ourHealth = ourBunch.reduce((acc, c) => acc + c.health, 0);
         const enemyHealth = enemies.reduce((acc, c) => acc + c.health, 0);
 
-        const lessShips = ourBunch.length < enemies.length * 1.1;
-        const lessHealth = ourHealth <= enemyHealth * 1.1 && ourBunch.length === enemies.length;
+        const lessShips = ourBunch.length < enemies.length;
+        const lessHealth = ourHealth <= enemyHealth && ourBunch.length === enemies.length;
         if (lessShips || lessHealth) {
             const theirClosestShip = Simulation.nearestEntity(enemies, closestShip).entity;
 

@@ -43,7 +43,6 @@ class Simulation {
     static intersectWallsWithCircle(gameMap, circle) {
         const rSq = circle.radius ** 2;
 
-        //TODO why is this so ugly?!? jannis help!
         const intersections = [];
 
         //top
