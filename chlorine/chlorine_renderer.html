@@ -102,7 +102,6 @@ function nearestClusters(distanceMap, clusters) {
             // only check from one side
             if (!(id1 < id2))
                 return;
-
             if (distances.minDist > maxSingleLinkDist)
                 return;
             if (distances.maxDist > maxCompleteLinkDist)
@@ -131,23 +130,24 @@ function merge(id1, id2, clusters, distanceMap) {
     clusters.delete(id2);
 
     const distancesFrom1 = distanceMap.get(id1);
+    const distancesFrom2 = distanceMap.get(id2);
 
     distancesFrom1.delete(id2);
-    distanceMap.delete(id2);
 
     distancesFrom1.forEach((distance13, id3) => {
-        const smaller = id2 < id3 ? id2 : id3;
-        const bigger = id2 > id3 ? id2 : id3;
-        const distance23 = distanceMap.get(smaller).get(bigger);
+        const distance23 = distancesFrom2.get(id3);
+        distanceMap.get(id3).delete(id2);
 
         const updatedDistance = {
             minDist: Math.min(distance13.minDist, distance23.minDist),
             maxDist: Math.max(distance13.maxDist, distance23.maxDist)
         };
         distancesFrom1.set(id3, updatedDistance);
+        distanceMap.get(id3).set(id1, updatedDistance);
 
-        distanceMap.get(smaller).delete(bigger);
     });
+
+    distanceMap.delete(id2);
 }
 
 function generateColor(id, count) {
