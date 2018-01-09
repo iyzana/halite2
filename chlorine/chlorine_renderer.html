@@ -128,16 +128,15 @@ function merge(id1, id2, clusters, distanceMap) {
 
 }
 
-function generateColor(id, count, pid) {
+function generateColor(id, count) {
     const hue = id * (360 / count) % 360;
-    const light = [50, 75, 25, 90][pid];
-    return `hsl(${hue}, 100%, ${light}%)`;
+    return `hsl(${hue}, 100%, 20%)`;
 }
 
-function clusterObjects(positions, pid) {
+function clusterObjects(positions) {
     const bigClusters = cluster(positions).filter(c => c.length > 1);
     return bigClusters.map((c, index) => ({
-        color: generateColor(index, bigClusters.length, pid),
+        color: generateColor(index, bigClusters.length),
         ships: c
     }));
 }
@@ -887,16 +886,30 @@ function make_renderer() {
         let previous_frame = (renderer.turn <= 0) ? null : renderer.game.frames[renderer.turn - 1];
         let next_frame = (renderer.turn > renderer.game.frames.length - 2) ? null : renderer.game.frames[renderer.turn + 1];
 
+        if (renderer.clusters) {
+            Object.values(frame.ships).forEach (ships => {
+                const clusters = clusterObjects(Object.values(ships));
+
+                clusters.forEach(cluster => {
+                    context.fillStyle = cluster.color;
+
+                    cluster.ships.forEach(ship => {
+                        let x = ship.x * scale;
+                        let y = ship.y * scale;
+                        let r = renderer.game.constants.SHIP_RADIUS * scale;
+
+                        context.beginPath();
+                        context.arc(x, y, r * 4, 0, Math.PI * 2, true);
+                        context.fill();
+                    });
+                })
+            });
+        }
 
         for (let pid in frame.ships) {
 
             if (frame.ships.hasOwnProperty(pid) === false) {
                 continue;
-            }
-
-            let clusters;
-            if (renderer.clusters) {
-                clusters = clusterObjects(Object.values(frame.ships[pid]), pid);
             }
 
             for (let sid in frame.ships[pid]) {
@@ -916,27 +929,6 @@ function make_renderer() {
                 let x = ship.x * scale;
                 let y = ship.y * scale;
                 let r = renderer.game.constants.SHIP_RADIUS * scale;
-
-                if (renderer.clusters) {
-                    let cluster_color = undefined;
-
-                    console.log(clusters.length);
-                    clusters.forEach(c => {
-                        if (c.ships.indexOf(ship) !== -1) {
-                            console.log("setting color");
-                            cluster_color = c.color;
-                        }
-                    });
-                    if (cluster_color) {
-                        const gradient = context.createRadialGradient(x, y, r, x, y, r * 4);
-                        gradient.addColorStop(1, 'transparent');
-                        gradient.addColorStop(0, cluster_color);
-                        context.fillStyle = gradient;
-                        context.beginPath();
-                        context.arc(x, y, r * 4, 0, Math.PI * 2, true);
-                        context.fill();
-                    }
-                }
 
                 context.fillStyle = colours[parseInt(pid, 10)];
                 context.beginPath();
