@@ -1,0 +1,17 @@
+{
+	"info":	"You can put message lookups in this file for the Angle Message parser. The ones here are what I'm using, but you can replace everything.",
+	"121":	"attack docked",
+	"122":	"orbit fight",
+	"123":  "assassinate",
+	"150":	"ATC deactivated",
+	"151":  "ATC restricted",
+	"152":  "ATC slowed",
+	"160":  "cowardice",
+	"174":  "dock target",
+	"175":  "recursion depth exceeded",
+	"176":  "executed plan but had no plan",
+	"177":  "secret sauce",
+	"178":  "point target",
+	"179":	"docking approach",
+	"180":	"no target"
+}

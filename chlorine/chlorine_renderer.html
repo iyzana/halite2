@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Chlorine</title>
+        <style>
+body {
+    margin: 0;
+    border: 0;
+    padding: 0;
+    background-color: black;
+    color: white;
+    user-select: none;
+    cursor: default;
+    overflow: hidden;
+}
+        #info_line {
+            margin: 10px;		/* calculation below of info_line_height total size relies on this */
+            border: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        </style>
+    </head>
+    <body>
+
+        <table style="width: calc(100% - 20px);" id="info_line"><tr>
+                <td style="width: 80%" id="unitbox">Starting up...</td>
+                <td align="right" id="measurebox"></td>
+                <td align="right" id="coordinatebox"></span></td>
+                <td align="right" id="turnbox"></td>
+            </tr></table>
+            <canvas id="canvas" width="0" height="0"></canvas>
+
+            <script>
+
+const distFunc = (a, b) => {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+
+    return Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
+};
+const maxSingleLinkDist = 6;
+const maxCompleteLinkDist = 15;
+
+function cluster(points) {
+    let nextId = 0;
+    const clusters = new Map(points.map(p => [nextId++, [p]]));
+    const distanceMap = new Map();
+
+    clusters.forEach((cluster1, id1) => {
+        distanceMap.set(id1, new Map());
+
+        clusters.forEach((cluster2, id2) => {
+            if (id1 === id2)
+                return;
+
+            const dist = distFunc(cluster1[0], cluster2[0]);
+
+            distanceMap.get(id1).set(id2, {
+                minDist: dist,
+                maxDist: dist
+            });
+        });
+    });
+
+    let nearestIds = nearestClusters(distanceMap);
+
+    while (nearestIds !== undefined) {
+        merge(nearestIds[0], nearestIds[1], clusters, distanceMap);
+
+        nearestIds = nearestClusters(distanceMap);
+    }
+
+    return Array.from(clusters.values());
+}
+
+function nearestClusters(distanceMap) {
+    let minDist = Infinity;
+    let minValue = undefined;
+
+    distanceMap.forEach((cluster1Map, id1) => {
+        cluster1Map.forEach((distances, id2) => {
+            // only check from one side
+            if (!(id1 < id2))
+                return;
+
+            if (distances.minDist > maxSingleLinkDist)
+                return;
+            if (distances.maxDist > maxCompleteLinkDist)
+                return;
+
+            if (distances.maxDist < minDist) {
+                minDist = distances.maxDist;
+                minValue = [id1, id2];
+            }
+        });
+    });
+
+    return minValue;
+}
+
+function merge(id1, id2, clusters, distanceMap) {
+    if (!(id1 < id2))
+        throw "merging in upper half";
+
+    const union = clusters.get(id1).concat(clusters.get(id2));
+    clusters.set(id1, union);
+    clusters.delete(id2);
+
+    const distancesFrom1 = distanceMap.get(id1);
+    const distancesFrom2 = distanceMap.get(id2);
+
+    distancesFrom1.delete(id2);
+    distanceMap.delete(id2);
+
+    distancesFrom1.forEach((distance13, id3) => {
+        const distance23 = distancesFrom2.get(id3);
+
+        const updatedDistance = {
+            minDist: Math.min(distance13.minDist, distance23.minDist),
+            maxDist: Math.max(distance13.maxDist, distance23.maxDist)
+        };
+        distancesFrom1.set(id3, updatedDistance);
+
+        distanceMap.get(id3).set(id1, updatedDistance);
+        distanceMap.get(id3).delete(id2);
+    });
+
+}
+
+function generateColor(id, count, pid) {
+    const hue = id * (360 / count) % 360;
+    const light = [50, 75, 25, 90][pid];
+    return `hsl(${hue}, 100%, ${light}%)`;
+}
+
+function clusterObjects(positions, pid) {
+    const bigClusters = cluster(positions).filter(c => c.length > 1);
+    return bigClusters.map((c, index) => ({
+        color: generateColor(index, bigClusters.length, pid),
+        ships: c
+    }));
+}
+
+"use strict";
+
+const colours = ["#eeaaee", "#63ceca", "#ffbe00", "#c5ec98"];
+const dark_colours = ["#9b6c9b", "#336a66", "#a17b00", "#708a51"];
+const ranks = ["..", "1st", "2nd", "3rd", "4th"];
+
+const PLANET_LINE_THICKNESS = 4;
+
+const alert = require("./modules/alert");
+const fs = require("fs");
+const ipcRenderer = require("electron").ipcRenderer;
+const stream = require("stream");
+const zstd = require("node-zstandard");
+
+const info_line = document.getElementById("info_line");
+const unitbox = document.getElementById("unitbox");
+const measurebox = document.getElementById("measurebox");
+const turnbox = document.getElementById("turnbox");
+const coordinatebox = document.getElementById("coordinatebox");
+const canvas = document.getElementById("canvas");
+const context = canvas.getContext("2d");
+
+const info_line_height = info_line.offsetHeight + 20;		// relies on #info_line having margin of 10
+
+function dist(x1, y1, x2, y2) {
+    let dx = x2 - x1;
+    let dy = y2 - y1;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+function deg_to_rad(d) {
+    return d / 180 * Math.PI;
+}
+
+function projection(x1, y1, distance, degrees) {			// Given a coordinate, a distance and an angle, find a new coordinate.
+    if (distance === 0) {
+        return [x1, y1];
+    }
+    let radians = deg_to_rad(degrees);
+    let x2 = distance * Math.cos(radians) + x1;
+    let y2 = distance * Math.sin(radians) + y1;
+    return [x2, y2];
+}
+
+function event_sorter(a, b) {
+
+    if (a.entity.owner === undefined) { a.entity.owner = -1; }
+    if (b.entity.owner === undefined) { b.entity.owner = -1; }
+
+    if (a.entity.owner < b.entity.owner) { return -1; }
+    if (a.entity.owner === b.entity.owner) {
+        if (a.entity.id < b.entity.id) { return -1; }
+        return 1;
+    }
+    return 1;
+}
+
+function make_renderer() {
+
+    let renderer = Object.create(null);
+
+    renderer.filename = "";
+    renderer.game = null;
+    renderer.turn = 0;
+    renderer.buggy = false;
+    renderer.tracking_type = null;
+    renderer.tracking_id = -1;
+    renderer.tracking_turn = -1;
+
+    renderer.spawn_counts = null;
+
+    renderer.weapon_ranges = false;
+    renderer.docking_ranges = false;
+    renderer.tails = true;
+    renderer.pointers = true;
+    renderer.deaths = true;
+    renderer.clusters = false;
+    renderer.crosshair = true;
+    renderer.precise = false;
+    renderer.angle_messages = true;
+
+    renderer.dragging = false;
+    renderer.cameraZoom = 1.0;
+    renderer.cameraPosition = [0, 0];
+    renderer.dragStartCameraPosition = [0, 0];
+
+    renderer.measure_entity = null;
+
+    try {
+        renderer.message_lookup = JSON.parse(fs.readFileSync("messages.json"));
+    } catch(err) {
+        renderer.message_lookup = Object.create(null);
+    }
+
+    renderer.open = (filename) => {
+
+        console.log(`Trying to load ${filename}`);
+
+        let was_plain_json = false;
+
+        try {
+            let contents = fs.readFileSync(filename);
+            renderer.game = JSON.parse(contents);
+            was_plain_json = true;
+        }
+        catch (err) {}
+
+        if (was_plain_json) {
+            renderer.finish_load(filename);
+            return;
+        }
+
+        let all_chunks = [];
+        let loading_stream = new stream.Writable();
+
+        loading_stream._write = (chunk, encoding, done) => {
+            all_chunks.push(chunk.toString());
+            done();
+        };
+
+        zstd.decompressFileToStream(filename, loading_stream, (err, result) => {
+            if (err) {
+                alert("Couldn't load this file");
+                console.log("Error 1");
+                console.log(err);
+            }
+            result.on("error", (err) => {
+                alert("Couldn't load this file");
+                console.log("Error 2");
+                console.log(err);
+            });
+            result.on("finish", () => {
+                try {
+                    renderer.game = JSON.parse(all_chunks.join(""));
+                } catch(err) {
+                    console.log("Error 3");
+                    console.log(err);
+                    return;
+                }
+                renderer.finish_load(filename);
+            });
+        });
+    };
+
+    renderer.finish_load = (filename) => {
+        renderer.filename = filename;
+        renderer.buggy = false;
+        renderer.turn = 0;
+        renderer.tracking_type = null;
+        unitbox.innerHTML = "No selection.";
+        renderer.count_spawns();
+        renderer.count_self_collisions();
+        renderer.draw();
+    };
+
+    renderer.count_self_collisions = () => {
+
+        renderer.self_collision_counts = [];
+
+        // We make an array of dimension <players> * <turns> to
+        // hold how many times a player crashed their own ships together.
+
+        for (let p = 0; p < renderer.game.num_players; p++) {
+            renderer.self_collision_counts.push([0]);
+        }
+
+        for (let n = 0; n < renderer.game.frames.length; n++) {
+
+            for (let p = 0; p < renderer.self_collision_counts.length; p++) {
+                renderer.self_collision_counts[p].push(renderer.self_collision_counts[p][n]);
+            }
+
+            let map = renderer.events_map(n);
+
+            if (map.destroyed) {
+
+                let destructions_by_time = {};
+
+                for (let n = 0; n < map.destroyed.length; n++) {
+
+                    let event = map.destroyed[n];
+
+                    if (destructions_by_time[event.time] === undefined) {
+                        destructions_by_time[event.time] = [];
+                    }
+                    destructions_by_time[event.time].push(event);
+                }
+
+                for (let t in destructions_by_time) {
+
+                    if (destructions_by_time.hasOwnProperty(t) === false) {
+                        continue;
+                    }
+
+                    for (let a = 0; a < destructions_by_time[t].length; a++) {
+
+                        for (let b = a + 1; b < destructions_by_time[t].length; b++) {
+
+                            let x1 = destructions_by_time[t][a].x;
+                            let y1 = destructions_by_time[t][a].y;
+                            let x2 = destructions_by_time[t][b].x;
+                            let y2 = destructions_by_time[t][b].y;
+
+                            if (dist(x1, y1, x2, y2) <= 1.001) {		// I've seen slightly > 1
+
+                                if (destructions_by_time[t][a].entity.owner === destructions_by_time[t][b].entity.owner) {
+
+                                    let p = destructions_by_time[t][a].entity.owner;
+                                    renderer.self_collision_counts[p][n + 1] += 1;
+
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    renderer.count_spawns = () => {
+
+        renderer.spawn_counts = [];
+
+        // We make an array of dimension <players> * <turns> to
+        // hold how many ships a player has ever made at each turn.
+
+        for (let n = 0; n < renderer.game.num_players; n++) {
+            renderer.spawn_counts.push([0]);
+        }
+
+        // Count initial ships... (will be 3 in a normal replay)
+
+        let frame = renderer.game.frames[0];
+
+        for (let pid in frame.ships) {
+
+            if (frame.ships.hasOwnProperty(pid) === false) {
+                continue;
+            }
+
+            for (let sid in frame.ships[pid]) {
+
+                if (frame.ships[pid].hasOwnProperty(sid) === false) {
+                    continue;
+                }
+
+                renderer.spawn_counts[pid][0]++;
+            }
+        }
+
+        // Count spawn events...
+
+        for (let n = 0; n < renderer.game.frames.length; n++) {
+
+            for (let p = 0; p < renderer.spawn_counts.length; p++) {
+                renderer.spawn_counts[p].push(renderer.spawn_counts[p][n]);
+            }
+
+            let frame = renderer.game.frames[n];
+
+            let events = frame.events;
+
+            if (events !== undefined) {
+
+                for (let i = 0; i < events.length; i++) {
+
+                    let event = events[i];
+
+                    if (event.event === "spawned") {
+                        renderer.spawn_counts[event.entity.owner][n + 1]++;
+                    }
+                }
+            }
+        }
+    };
+
+    renderer.save = (filename) => {
+
+        if (!filename || !renderer.game) {
+            return;
+        }
+
+        fs.writeFileSync(filename, JSON.stringify(renderer.game, null, "\t"));
+    };
+
+    renderer.save_frame = (filename) => {
+
+        if (!filename || !renderer.game) {
+            return;
+        }
+
+        fs.writeFileSync(filename, JSON.stringify(renderer.game.frames[renderer.turn], null, "\t"));
+    };
+
+    renderer.save_moves = (filename) => {
+
+        if (!filename || !renderer.game) {
+            return;
+        }
+
+        let s = "";
+        let moves = renderer.game.moves[renderer.turn];
+        if (moves) {
+            s = JSON.stringify(moves, null, "\t");
+        }
+
+        fs.writeFileSync(filename, s);
+    };
+
+    renderer.forward = (n) => {		// Negative arguments are allowed (go back).
+
+        if (!renderer.game) {
+            return;
+        }
+
+        renderer.turn += n;
+        renderer.measure_reset();
+
+        if (renderer.turn < 0) {
+            renderer.turn = 0;
+        }
+
+        if (renderer.turn >= renderer.game.frames.length) {
+            renderer.turn = renderer.game.frames.length - 1;
+        }
+
+        renderer.draw();
+    };
+
+    renderer.toggle = (varname) => {
+        renderer[varname] = !renderer[varname];
+        renderer.draw();
+    };
+
+    renderer.select_ship = (id) => {
+        renderer.tracking_type = "ship";
+        renderer.tracking_id = id;
+        renderer.tracking_turn = renderer.turn;
+        renderer.measure_reset();					// FIXME: should actually measure
+        renderer.draw();
+    };
+
+    renderer.select_planet = (id) => {
+        renderer.tracking_type = "planet";
+        renderer.tracking_id = id.toString();		// FIXME: the code below implicitly assumes these things are strings
+        renderer.tracking_turn = renderer.turn;
+        renderer.measure_reset();					// FIXME: should actually measure
+        renderer.draw();
+    };
+
+    renderer.draw = () => {
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight - info_line_height;
+
+        if (!renderer.game) {
+            return;
+        }
+
+        let scale = Math.min(canvas.width / renderer.game.width, canvas.height / renderer.game.height) * renderer.cameraZoom;
+
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.save();
+        context.translate(-renderer.cameraPosition[0] * scale, -renderer.cameraPosition[1] * scale);
+
+        renderer.display_tracked();
+
+        renderer.draw_planets();
+        renderer.draw_ships();
+        renderer.draw_events();
+
+        let turn_string = `${renderer.turn} / ${renderer.game.frames.length - 1}`;
+        document.title = turn_string + " --- " + renderer.game.player_names.join(" / ");
+        turnbox.innerHTML = turn_string;
+
+        renderer.send_info();
+        renderer.send_events();
+
+        context.restore();
+    };
+
+    renderer.display_tracked_planet = (planet) => {
+        let precision = renderer.precise ? 6 : 2;
+        let owner_string = (planet.owner === null) ? "Unowned" : renderer.game.player_names[planet.owner];
+        let colour = (planet.owner === null) ? "white" : colours[planet.owner];
+        let dock_string = `${planet.docked_ships.length} / ${planet.docking_spots} docked`;
+        unitbox.innerHTML = ` Planet ${planet.id} (<span style="color: ${colour}">${owner_string}</span>)`;
+        unitbox.innerHTML += ` &mdash; [ ${planet.x.toFixed(precision)} , ${planet.y.toFixed(precision)} ]`;
+        unitbox.innerHTML += ` &mdash; ${planet.health} hp &mdash; ${dock_string} &mdash; ${planet.r.toFixed(precision)} radius`;
+
+        if (renderer.crosshair) {
+            renderer.draw_crosshair(planet);
+        }
+    };
+
+    renderer.display_tracked_ship = (ship) => {
+        let precision = renderer.precise ? 6 : 2;
+        let owner_string = renderer.game.player_names[ship.owner];
+        let colour = colours[ship.owner];
+        unitbox.innerHTML = `Ship ${ship.id} (<span style="color: ${colour}">${owner_string}</span>)`;
+        unitbox.innerHTML += ` &mdash; [ ${ship.x.toFixed(precision)} , ${ship.y.toFixed(precision)} ] &mdash; ${ship.health} hp`;
+        if (ship.docking.status !== "undocked") {
+            unitbox.innerHTML += ` &mdash; <span style="color: ${colour}">${ship.docking.status}</span>`;
+        } else {
+            let moves = renderer.game.moves[renderer.turn];
+            if (moves) {
+                let command = moves[ship.owner][0][ship.id];
+                if (command) {
+                    let speed = command.magnitude;
+                    let angle = command.angle;
+                    if (speed !== undefined && angle !== undefined) {
+                        let angle_string = angle.toString();
+                        if (renderer.angle_messages && angle >= 360) {
+                            let message = Math.floor(angle / 360) - 1;
+                            if (renderer.message_lookup[message] !== undefined) {
+                                message = `"${renderer.message_lookup[message]}"`;
+                            }
+                            angle_string = `${angle % 360} (msg: ${message})`;
+                        }
+                        unitbox.innerHTML += ` &mdash; next: <span style="color: ${colour}">thrust ${speed} / ${angle_string}</span>`;
+                    } else {
+                        unitbox.innerHTML += ` &mdash; next: <span style="color: ${colour}">${command.type}</span>`;
+                    }
+                }
+            }
+        }
+
+        if (renderer.crosshair) {
+            renderer.draw_crosshair(ship);
+        }
+    };
+
+    renderer.draw_crosshair = (entity) => {
+
+        let scale = Math.min(canvas.width / renderer.game.width, canvas.height / renderer.game.height) * renderer.cameraZoom;
+
+        context.setLineDash([5, 15]);
+
+        context.lineWidth = 1;
+        context.strokeStyle = "gray";
+
+        context.beginPath();
+        context.moveTo(entity.x * scale, entity.y * scale);
+        context.lineTo(entity.x * scale, 0);
+        context.stroke();
+
+        context.beginPath();
+        context.moveTo(entity.x * scale, entity.y * scale);
+        context.lineTo(entity.x * scale, canvas.height * scale);
+        context.stroke();
+
+        context.beginPath();
+        context.moveTo(entity.x * scale, entity.y * scale);
+        context.lineTo(0, entity.y * scale);
+        context.stroke();
+
+        context.beginPath();
+        context.moveTo(entity.x * scale, entity.y * scale);
+        context.lineTo(canvas.width * scale, entity.y * scale);
+        context.stroke();
+
+        context.setLineDash([]);
+    };
+
+    renderer.display_tracked = () => {
+
+        if (renderer.tracking_type === null) {
+            unitbox.innerHTML = "No selection.";
+            return;
+        }
+
+        let frame = renderer.game.frames[renderer.turn];
+
+        if (renderer.tracking_type === "ship") {
+
+            for (let pid in frame.ships) {
+
+                if (frame.ships.hasOwnProperty(pid) === false) {
+                    continue;
+                }
+
+                if (frame.ships[pid][renderer.tracking_id] !== undefined) {
+                    renderer.display_tracked_ship(frame.ships[pid][renderer.tracking_id]);
+                    return;
+                }
+            }
+
+        } else if (renderer.tracking_type === "planet") {
+
+            let frame_planets = renderer.current_planets();
+
+            for (let n = 0; n < frame_planets.length; n++) {		// Note than n here doesn't match planet ID.
+
+                let planet = frame_planets[n];
+
+                if (planet.id === renderer.tracking_id) {
+                    renderer.display_tracked_planet(planet);
+                    return;
+                }
+            }
+        }
+
+        // Dead. But leave the selection as it is.
+
+        if (renderer.turn > renderer.tracking_turn) {
+            unitbox.innerHTML = "(selection no longer present)";
+        } else {
+            unitbox.innerHTML = "(selection not yet present)";
+        }
+    };
+
+    renderer.measure_reset = () => {
+        measurebox.innerHTML = "";
+        renderer.measure_entity = null;
+    };
+
+    renderer.measure = (entity) => {
+        if (renderer.measure_entity !== null) {
+            let d = dist(renderer.measure_entity.x, renderer.measure_entity.y, entity.x, entity.y);
+            measurebox.innerHTML = `(dist: ${d.toFixed(6)})`;
+        }
+        renderer.measure_entity = entity;
+    };
+
+    renderer.click = (event) => {
+        if (!renderer.game) {
+            return;
+        }
+
+        let scale = Math.min(canvas.width / renderer.game.width, canvas.height / renderer.game.height) * renderer.cameraZoom;
+
+        let worldx = event.offsetX / scale + renderer.cameraPosition[0];
+        let worldy = event.offsetY / scale + renderer.cameraPosition[1];
+
+        // Was the click inside a planet?
+
+        let frame_planets = renderer.current_planets();
+
+        for (let n = 0; n < frame_planets.length; n++) {		// Note than n here doesn't match planet ID.
+
+            let planet = frame_planets[n];
+
+            if (dist(worldx, worldy, planet.x, planet.y) < planet.r) {
+                renderer.tracking_type = "planet";
+                renderer.tracking_id = planet.id;
+                renderer.tracking_turn = renderer.turn;
+                renderer.measure(planet);
+                renderer.draw();
+                return;
+            }
+        }
+
+        // Was the click near a ship?
+
+        let best_ship = null;
+        let best_distance = 99999;
+
+        let frame = renderer.game.frames[renderer.turn];
+
+        for (let pid in frame.ships) {
+
+            if (frame.ships.hasOwnProperty(pid) === false) {
+                continue;
+            }
+
+            for (let sid in frame.ships[pid]) {
+
+                if (frame.ships[pid].hasOwnProperty(sid) === false) {
+                    continue;
+                }
+
+                let ship = frame.ships[pid][sid];
+
+                let distance = dist(worldx, worldy, ship.x, ship.y);
+                if (distance < best_distance) {
+                    best_ship = ship;
+                    best_distance = distance;
+                }
+            }
+        }
+
+        if (best_distance < 5 / renderer.cameraZoom) {
+            renderer.tracking_type = "ship";
+            renderer.tracking_id = best_ship.id;
+            renderer.tracking_turn = renderer.turn;
+            renderer.measure(best_ship);
+            renderer.draw();
+            return;
+        }
+
+        // User clicked empty space.
+
+        renderer.tracking_type = null;
+        renderer.measure_reset();
+        renderer.draw();
+    };
+
+    renderer.scroll = (event) => {
+        renderer.cameraZoom += event.wheelDelta / 720.0;
+        renderer.cameraZoom = Math.max(1, Math.min(renderer.cameraZoom, 7));
+        renderer.draw();
+    };
+
+    renderer.scroll_reset = () => {
+        renderer.dragging = false;
+        renderer.cameraZoom = 1.0;
+        renderer.cameraPosition = [0, 0];
+        renderer.dragStartCameraPosition = [0, 0];
+        renderer.draw();
+    };
+
+    renderer.mousemove = (event) =>  {
+        let scale = Math.min(canvas.width / renderer.game.width, canvas.height / renderer.game.height);
+
+        let worldx = event.offsetX / scale;
+        let worldy = event.offsetY / scale;
+        coordinatebox.innerHTML = `(x: ${worldx.toFixed(2)}, y: ${worldy.toFixed(2)})`;
+    };
+
+    renderer.ships_destroyed_in_frame = (i) => {		// returns a map of ship id --> destruction point
+
+        let ret = Object.create(null);
+
+        let frame = renderer.game.frames[i];
+        if (frame === undefined) {
+            return ret;
+        }
+
+        let events = frame.events;
+        if (events === undefined) {
+            return ret;
+        }
+
+        for (let i = 0; i < events.length; i++) {
+            let event = events[i];
+            if (event.event === "destroyed" && event.entity.type === "ship") {
+                ret[event.entity.id] = {x: event.x, y: event.y, owner: event.entity.owner};
+            }
+        }
+
+        return ret;
+    };
+
+    renderer.current_planets = () => {
+
+        // Returns an array of planets this turn with all needed info, BUT THE INDICES DO NOT MATCH PLANET ID.
+
+        if (!renderer.game) {
+            return [];
+        }
+
+        let ret = [];
+
+        let frame = renderer.game.frames[renderer.turn];
+
+        let game_planets = renderer.game.planets;		// The planets we're told about at the top-level of the JSON.
+
+        for (let plid in frame.planets) {				// "plid" means planet ID.
+
+            if (frame.planets.hasOwnProperty(plid) === false) {
+                continue;
+            }
+
+            let pl = Object.create(null);
+            pl.id = plid;
+
+            pl.x = game_planets[plid].x;				// The frame's planet doesn't contain various things;
+            pl.y = game_planets[plid].y;				// so get those from the game_planets....
+            pl.r = game_planets[plid].r;
+            pl.docking_spots = game_planets[plid].docking_spots;
+
+            pl.docked_ships = frame.planets[plid].docked_ships;
+            pl.health = frame.planets[plid].health;
+            pl.owner = frame.planets[plid].owner;
+
+            ret.push(pl);
+        }
+
+        return ret;
+    };
+
+    renderer.draw_planets = () => {
+
+        let scale = Math.min(canvas.width / renderer.game.width, canvas.height / renderer.game.height) * renderer.cameraZoom;
+
+        let frame_planets = renderer.current_planets();
+
+        for (let n = 0; n < frame_planets.length; n++) {					// Note than n here doesn't match planet ID.
+
+            let planet = frame_planets[n];
+
+            let x = planet.x * scale;
+            let y = planet.y * scale;
+            let r = planet.r * scale;
+
+            let adjusted_r = Math.max(1, r - PLANET_LINE_THICKNESS / 2);	// Compensate for line thickness so the planet's edge is correct.
+
+            if (planet.owner === null) {
+                context.strokeStyle = "gray";
+            } else {
+                context.strokeStyle = colours[parseInt(planet.owner, 10)];
+            }
+
+            context.lineWidth = PLANET_LINE_THICKNESS;
+            context.beginPath();
+            context.arc(x, y, adjusted_r, 0, Math.PI * 2, true);
+            context.stroke();
+
+            if (renderer.docking_ranges) {
+                context.lineWidth = 1;
+                context.beginPath();
+                context.arc(x, y, r + renderer.game.constants.DOCK_RADIUS * scale, 0, Math.PI * 2, true);
+                context.stroke();
+            }
+
+            if (planet.docked_ships.length > 0) {
+
+                for (let n = 0; n < planet.docked_ships.length; n++) {
+
+                    let sid = planet.docked_ships[n];
+
+                    let ship = renderer.game.frames[renderer.turn].ships[planet.owner][sid];
+
+                    let x2 = ship.x * scale;
+                    let y2 = ship.y * scale;
+
+                    context.lineWidth = 1;
+                    context.strokeStyle = "white";
+                    context.beginPath();
+                    context.moveTo(x, y);
+                    context.lineTo(x2, y2);
+                    context.stroke();
+                }
+            }
+        }
+    };
+
+    renderer.draw_ships = () => {
+
+        let scale = Math.min(canvas.width / renderer.game.width, canvas.height / renderer.game.height) * renderer.cameraZoom;
+
+        let frame = renderer.game.frames[renderer.turn];
+        let previous_frame = (renderer.turn <= 0) ? null : renderer.game.frames[renderer.turn - 1];
+        let next_frame = (renderer.turn > renderer.game.frames.length - 2) ? null : renderer.game.frames[renderer.turn + 1];
+
+
+        for (let pid in frame.ships) {
+
+            if (frame.ships.hasOwnProperty(pid) === false) {
+                continue;
+            }
+
+            let clusters;
+            if (renderer.clusters) {
+                clusters = clusterObjects(Object.values(frame.ships[pid]), pid);
+            }
+
+            for (let sid in frame.ships[pid]) {
+
+                if (frame.ships[pid].hasOwnProperty(sid) === false) {
+                    continue;
+                }
+
+                let ship = frame.ships[pid][sid];
+
+                // While we're looking at ships, see if we see non-zero velocities, and log that fact.
+
+                if (ship.vel_x !== 0 || ship.vel_y !== 0) {
+                    renderer.buggy = true;
+                }
+
+                let x = ship.x * scale;
+                let y = ship.y * scale;
+                let r = renderer.game.constants.SHIP_RADIUS * scale;
+
+                if (renderer.clusters) {
+                    let cluster_color = undefined;
+
+                    console.log(clusters.length);
+                    clusters.forEach(c => {
+                        if (c.ships.indexOf(ship) !== -1) {
+                            console.log("setting color");
+                            cluster_color = c.color;
+                        }
+                    });
+                    if (cluster_color) {
+                        const gradient = context.createRadialGradient(x, y, r, x, y, r * 4);
+                        gradient.addColorStop(1, 'transparent');
+                        gradient.addColorStop(0, cluster_color);
+                        context.fillStyle = gradient;
+                        context.beginPath();
+                        context.arc(x, y, r * 4, 0, Math.PI * 2, true);
+                        context.fill();
+                    }
+                }
+
+                context.fillStyle = colours[parseInt(pid, 10)];
+                context.beginPath();
+                context.arc(x, y, r, 0, Math.PI * 2, true);
+                context.fill();
+
+                const ship_selected = renderer.tracking_type === "ship";
+                let selected_ship_player = undefined;
+                let selected_ship = undefined;
+
+                if (ship_selected) {
+                    for (let pid2 in frame.ships) {
+                        if (frame.ships.hasOwnProperty(pid2) === false) {
+                            continue;
+                        }
+
+                        for (let sid2 in frame.ships[pid2]) {
+                            if (frame.ships[pid2].hasOwnProperty(sid2) === false) {
+                                continue;
+                            }
+                            if (sid2 == renderer.tracking_id) {
+                                selected_ship = frame.ships[pid2][sid2];
+                                selected_ship_player = pid2;
+                            }
+                        }	
+                    }
+                }
+
+                const selected = renderer.tracking_type === "ship" && renderer.tracking_id == sid;
+
+                const max_info_render_range = renderer.game.constants.MAX_SPEED + (renderer.game.constants.WEAPON_RADIUS + renderer.game.constants.SHIP_RADIUS * 2) * 2;
+                const in_range = !!selected_ship && Math.sqrt((selected_ship.x - ship.x) ** 2 + (selected_ship.y - ship.y) ** 2) <= max_info_render_range;
+                const render_info = selected || in_range && selected_ship_player != pid;
+
+                const highlight_colour = false;
+                const stroke_width = highlight_colour ? 2 : 1;
+                const colour = colours[parseInt(pid, 10)];
+                const dark_colour = dark_colours[parseInt(pid, 10)];
+                const info_colour = highlight_colour ? "#dddddd" : colours[parseInt(pid, 10)];
+
+                if (render_info && renderer.weapon_ranges && ship.docking.status === "undocked") {
+                    context.strokeStyle = info_colour;
+                    context.lineWidth = stroke_width;
+                    context.beginPath();
+                    context.arc(x, y, (renderer.game.constants.WEAPON_RADIUS + renderer.game.constants.SHIP_RADIUS) * scale, 0, Math.PI * 2, true);
+                    context.stroke();
+                }
+                if (render_info && renderer.next_weapon_ranges && ship.docking.status === "undocked") {
+                    context.strokeStyle = info_colour;
+                    context.lineWidth = stroke_width;
+                    context.beginPath();
+                    context.arc(x, y, (renderer.game.constants.MAX_SPEED + renderer.game.constants.WEAPON_RADIUS + renderer.game.constants.SHIP_RADIUS * 2) * scale, 0, Math.PI * 2, true);
+                    context.stroke();
+                }
+                if (render_info && renderer.movement_ranges && ship.docking.status === "undocked") {
+                    context.strokeStyle = info_colour;
+                    context.lineWidth = stroke_width;
+                    context.beginPath();
+                    context.arc(x, y, (renderer.game.constants.MAX_SPEED) * scale, 0, Math.PI * 2, true);
+                    context.stroke();
+                }
+
+                if (previous_frame && renderer.tails) {
+                    let last_ship = previous_frame.ships[pid][sid];
+                    if (last_ship) {
+                        let x2 = last_ship.x * scale;
+                        let y2 = last_ship.y * scale;
+                        context.lineWidth = 1;
+                        context.strokeStyle = colour;
+                        context.beginPath();
+                        context.moveTo(x, y);
+                        context.lineTo(x2, y2);
+                        context.stroke();
+                    }
+                }
+
+                if (renderer.pointers && next_frame !== null) {
+
+                    let player_orders = renderer.game.moves[renderer.turn][pid][0];
+
+                    let order = player_orders[sid];
+
+                    if (order !== undefined && order.type === "thrust") {
+
+                        let [intended_x, intended_y] = projection(ship.x, ship.y, order.magnitude, order.angle);
+
+                        let x2 = intended_x * scale;
+                        let y2 = intended_y * scale;
+                        context.lineWidth = 1;
+                        context.strokeStyle = dark_colour;
+                        context.beginPath();
+                        context.moveTo(x, y);
+                        context.lineTo(x2, y2);
+                        context.stroke();
+                    }
+                }
+
+            }
+        }
+    };
+
+    renderer.draw_events = () => {
+
+        if (renderer.turn === 0 || renderer.deaths === false) {
+            return;
+        }
+
+        let previous_frame = renderer.game.frames[renderer.turn - 1];
+
+        let scale = Math.min(canvas.width / renderer.game.width, canvas.height / renderer.game.height) * renderer.cameraZoom;
+
+        // Visually, things look better if we draw last frame's events. In any case, events logically
+        // occur *between* frames so its a matter of philosophy which frame to draw them in.
+
+        let ships_destroyed_map = renderer.ships_destroyed_in_frame(renderer.turn - 1);
+
+        let sids = Object.keys(ships_destroyed_map);
+
+        for (let n = 0; n < sids.length; n++) {
+
+            let sid = sids[n];
+            let ship = ships_destroyed_map[sid];
+
+            let x = ship.x * scale;
+            let y = ship.y * scale;
+
+            // If the ship existed last turn, draw its final movement...
+
+            let pid = ship.owner;
+
+            let last_ship = previous_frame.ships[pid][sid];
+            if (last_ship && renderer.tails) {
+                let x2 = last_ship.x * scale;
+                let y2 = last_ship.y * scale;
+                context.lineWidth = 1;
+                context.strokeStyle = colours[parseInt(pid, 10)];
+                context.beginPath();
+                context.moveTo(x, y);
+                context.lineTo(x2, y2);
+                context.stroke();
+            }
+
+            // Draw a destruction marker...
+
+            context.lineWidth = 1;
+            context.strokeStyle = "#ffffff";
+
+            context.beginPath();
+            context.moveTo(x - 1 * scale, y - 1 * scale);
+            context.lineTo(x + 1 * scale, y + 1 * scale);
+            context.stroke();
+
+            context.beginPath();
+            context.moveTo(x + 1 * scale, y - 1 * scale);
+            context.lineTo(x - 1 * scale, y + 1 * scale);
+            context.stroke();
+        }
+    };
+
+    renderer.send_info = () => {
+
+        let frame = renderer.game.frames[renderer.turn];
+
+        let planet_count = [];
+        for (let n = 0; n < renderer.game.num_players; n++) {
+            planet_count.push(0);
+        }
+
+        for (let plid in frame.planets) {
+            if (frame.planets.hasOwnProperty(plid) === false) {
+                continue;
+            }
+            if (frame.planets[plid].owner !== null) {
+                planet_count[frame.planets[plid].owner] += 1;
+            }
+        }
+
+        let lines = [];
+
+        lines.push(`<p>${renderer.filename}</p>`);
+
+        if (renderer.buggy) {
+            let bug_notice = `<span style="color: #ff3333;">velocity bug seen</span>`;
+            lines.push(`<p>${renderer.game.width} x ${renderer.game.height} (seed ${renderer.game.seed}) &nbsp; ${bug_notice}</p>`);
+        } else {
+            lines.push(`<p>${renderer.game.width} x ${renderer.game.height} (seed ${renderer.game.seed})</p>`);
+        }
+
+        if (renderer.game.engine_version !== undefined) {
+            lines.push(`<p>Engine: ${renderer.game.engine_version}</p>`);
+        } else {
+            lines.push(`<p>Engine: no version specified</p>`);
+        }
+
+        for (let n = 0; n < renderer.game.num_players; n++) {
+
+            let rank = "??";
+            let afrt = "??";
+            let mfrt = "??";
+
+            let stats = renderer.game.stats;
+
+            if (stats) {
+                rank = ranks[stats[n].rank];
+
+                if (stats[n].average_frame_response_time !== undefined) {
+                    afrt = stats[n].average_frame_response_time.toFixed(0);
+                }
+
+                if (stats[n].max_frame_response_time !== undefined) {
+                    mfrt = stats[n].max_frame_response_time;
+                }
+            }
+
+            let ships = frame.ships[n];
+            let ship_count = Object.keys(ships).length;
+
+            let colour = colours[n];
+            let list_colour = "white";
+            if (ship_count === 0 && planet_count[n] === 0) {
+                colour = "#999999";
+                list_colour = "#999999";
+            }
+
+            lines.push(`<h2 style="color: ${colour}">${renderer.game.player_names[n]} (${rank})</h2>`);
+
+            lines.push(`<ul style="color: ${list_colour}">`);
+            lines.push(`<li>Planets: ${planet_count[n]}</li>`);
+            lines.push(`<li>Ships: ${ship_count}</li>`);
+            lines.push(`<li>Self collisions: ${renderer.self_collision_counts[n][renderer.turn]}</span></li>`);
+            lines.push(`<li>Total ships: <span style="color:${colour}">${renderer.spawn_counts[n][renderer.turn]}</span></li>`);
+            lines.push(`</ul>`);
+            lines.push(`<br>`);
+            lines.push(`<ul style="color: ${list_colour}">`);
+            lines.push(`<li>Latency (mean, max): ${afrt} / ${mfrt}</li>`);
+            lines.push(`</ul>`);
+
+        }
+
+        ipcRenderer.send("relay", {
+            receiver: "info",
+            channel: "update",
+            content: lines.join(""),
+        });
+    };
+
+    renderer.events_map = (turn) => {
+
+        let frame = renderer.game.frames[turn];
+        let events = frame.events;
+
+        if (events === undefined) {
+            events = [];
+        }
+
+        let map = Object.create(null);
+
+        for (let n = 0; n < events.length; n++) {
+            let event = events[n];
+            if (map[event.event] === undefined) {
+                map[event.event] = [];
+            }
+            map[event.event].push(event);
+        }
+
+        return map;
+    };
+
+    renderer.send_events = () => {
+
+        let map = renderer.events_map(renderer.turn);
+
+        let lines = [];
+
+        lines.push(`<p>Note: all events happen <i>after</i> this turn.<br>Click to select.</p>`);
+
+        // ------------------------------------------------------------------------
+
+        lines.push(`<p style="color: #ffcccc">Ship/Ship Collisions</p>`);
+
+        if (map.destroyed) {
+
+            let destructions_by_time = {};
+            let collisions = [];
+
+            for (let n = 0; n < map.destroyed.length; n++) {
+
+                let event = map.destroyed[n];
+
+                if (event.time !== 0) {
+                    if (destructions_by_time[event.time] === undefined) {
+                        destructions_by_time[event.time] = [];
+                    }
+                    destructions_by_time[event.time].push(event);
+                }
+            }
+
+            for (let t in destructions_by_time) {
+
+                if (destructions_by_time.hasOwnProperty(t) === false) {
+                    continue;
+                }
+
+                for (let a = 0; a < destructions_by_time[t].length; a++) {
+
+                    for (let b = a + 1; b < destructions_by_time[t].length; b++) {
+
+                        let x1 = destructions_by_time[t][a].x;
+                        let y1 = destructions_by_time[t][a].y;
+                        let x2 = destructions_by_time[t][b].x;
+                        let y2 = destructions_by_time[t][b].y;
+
+                        if (dist(x1, y1, x2, y2) <= 1.001) {		// I've seen slightly > 1
+
+                            let c = {
+                                ship1: destructions_by_time[t][a].entity.id,
+                                ship2: destructions_by_time[t][b].entity.id,
+                                colour1: colours[destructions_by_time[t][a].entity.owner],
+                                colour2: colours[destructions_by_time[t][b].entity.owner],
+                            };
+
+                            collisions.push(c);
+                        }
+                    }
+                }
+            }
+
+            if (collisions.length > 0) {
+
+                lines.push(`<ul>`);
+
+                for (let n = 0; n < collisions.length; n++) {
+
+                    let c = collisions[n];
+
+                    lines.push(
+                        `<li>
+                        <span style="color: ${c.colour1}" onclick="select_ship(${c.ship1})">ship ${c.ship1}</span> <=>
+                        <span style="color: ${c.colour2}" onclick="select_ship(${c.ship2})">ship ${c.ship2}</span>
+                        </li>`
+                    );
+                }
+
+                lines.push(`</ul>`);
+            }
+        }
+
+        // ------------------------------------------------------------------------
+
+        lines.push(`<p style="color: #ffcccc">Attacks</p>`);
+
+        if (map.attack) {
+
+            map.attack.sort(event_sorter);
+
+            lines.push(`<ul>`);
+            for (let n = 0; n < map.attack.length; n++) {
+
+                let event = map.attack[n];
+                let attacker_colour = colours[event.entity.owner];
+                let target_strings = [];
+
+                for (let i = 0; i < event.target_locations.length; i++) {
+                    let tl = event.target_locations[i];
+                    target_strings.push(`<span style="color: ${colours[tl.owner]}" onclick="select_ship(${tl.id})">${tl.id}</span>`);
+                }
+
+                lines.push(
+                    `<li><span style="color: ${attacker_colour}" onclick="select_ship(${event.entity.id})">
+                    ship ${event.entity.id}</span> ==> ${target_strings.join(", ")}</li>`
+                );
+            }
+            lines.push(`</ul>`);
+        }
+
+        // ------------------------------------------------------------------------
+
+        lines.push(`<p style="color: #ffcccc">Contended Docking</p>`);
+
+        if (map.contention) {
+
+            map.contention.sort(event_sorter);
+
+            lines.push(`<ul>`);
+            for (let n = 0; n < map.contention.length; n++) {
+
+                let event = map.contention[n];
+                let planet_string = `<span onclick="select_planet(${event.entity.id})">planet ${event.entity.id}</span>`;
+                let ship_strings = [];
+
+                for (let i = 0; i < event.participants.length; i++) {
+                    let ship = event.participants[i];
+                    let colour = colours[ship.owner];
+                    ship_strings.push(`<span style="color: ${colour}" onclick="select_ship(${ship.id})">${ship.id}</span>`);
+                }
+                lines.push(`<li>${planet_string} by ${ship_strings.join(", ")}</li>`);
+            }
+            lines.push(`</ul>`);
+        }
+
+        // ------------------------------------------------------------------------
+
+        lines.push(`<p style="color: #ffcccc">Deaths</p>`);
+
+        if (map.destroyed) {
+
+            map.destroyed.sort(event_sorter);
+
+            lines.push(`<ul>`);
+            for (let n = 0; n < map.destroyed.length; n++) {
+                let event = map.destroyed[n];
+                let etype = event.entity.type;
+                let colour = etype === "ship" ? colours[event.entity.owner] : "#ffffff";
+
+                lines.push(
+                    `<li><span style="color: ${colour}" onclick="select_${etype}(${event.entity.id})">
+                    ${etype} ${event.entity.id}</span></li>`
+                );
+            }
+            lines.push(`</ul>`);
+        }
+
+        // ------------------------------------------------------------------------
+
+        lines.push(`<p style="color: #ffcccc">Spawns</p>`);
+
+        if (map.spawned) {
+
+            map.spawned.sort(event_sorter);
+
+            lines.push(`<ul>`);
+            for (let n = 0; n < map.spawned.length; n++) {
+
+                let event = map.spawned[n];
+                let colour = colours[event.entity.owner];
+
+                lines.push(`<li><span style="color: ${colour}" onclick="select_ship(${event.entity.id})">ship ${event.entity.id}</span></li>`);
+            }
+            lines.push(`</ul>`);
+        }
+
+        // ------------------------------------------------------------------------
+
+        ipcRenderer.send("relay", {
+            receiver: "events",
+            channel: "update",
+            content: lines.join(""),
+        });
+    };
+
+    return renderer;
+}
+
+let renderer = make_renderer();
+
+ipcRenderer.on("open", (event, filename) => {
+    renderer.open(filename);
+});
+
+ipcRenderer.on("save", (event, filename) => {
+    renderer.save(filename);
+});
+
+ipcRenderer.on("save_frame", (event, filename) => {
+    renderer.save_frame(filename);
+});
+
+ipcRenderer.on("save_moves", (event, filename) => {
+    renderer.save_moves(filename);
+});
+
+ipcRenderer.on("forward", (event, n) => {
+    renderer.forward(n);
+});
+
+ipcRenderer.on("toggle", (event, varname) => {
+    renderer.toggle(varname);
+});
+
+ipcRenderer.on("select_ship", (event, id) => {
+    renderer.select_ship(id);
+});
+
+ipcRenderer.on("select_planet", (event, id) => {
+    renderer.select_planet(id);
+});
+
+ipcRenderer.on("reset_zoom", () => {
+    renderer.scroll_reset();
+});
+
+window.addEventListener("resize", () => renderer.draw());
+
+canvas.addEventListener("mousedown", (event) => {
+    event.preventDefault();
+
+    let scale = Math.min(canvas.width / renderer.game.width, canvas.height / renderer.game.height) * renderer.cameraZoom;
+    renderer.dragging = true;
+    renderer.dragStart = [ event.offsetX / scale + renderer.cameraPosition[0], event.offsetY / scale + renderer.cameraPosition[1] ];
+    renderer.dragStartCameraPosition = renderer.cameraPosition;
+
+    renderer.click(event);
+});
+
+canvas.addEventListener("mouseup", (event) => {
+    event.preventDefault();
+    renderer.dragging = false;
+});
+
+canvas.addEventListener("mouseout", (event) => {
+    event.preventDefault();
+    renderer.dragging = false;
+});
+
+canvas.addEventListener("mousemove", (event) => {
+    event.preventDefault();
+    if (renderer.dragging) {
+        let scale = Math.min(canvas.width / renderer.game.width, canvas.height / renderer.game.height) * renderer.cameraZoom;
+
+        renderer.cameraPosition[0] = renderer.dragStartCameraPosition[0] + (renderer.dragStart[0] - (event.offsetX / scale + renderer.cameraPosition[0]));
+        renderer.cameraPosition[1] = renderer.dragStartCameraPosition[1] + (renderer.dragStart[1] - (event.offsetY / scale + renderer.cameraPosition[1]));
+
+        // TODO Find the correct maximum values
+        renderer.cameraPosition[0] = Math.max(0, Math.min(renderer.game.width, renderer.cameraPosition[0]));
+        renderer.cameraPosition[1] = Math.max(0, Math.min(renderer.game.height, renderer.cameraPosition[1]));
+
+        renderer.draw();
+    }
+});
+
+canvas.addEventListener("mousewheel", (event) => {
+    event.preventDefault();
+    renderer.scroll(event);
+});
+
+canvas.addEventListener("mousemove", (event) => {
+    renderer.mousemove(event);
+});
+
+// Setup drag-and-drop...
+
+window.ondragover = () => false;
+window.ondragleave = () => false;
+window.ondragend = () => false;
+window.ondrop = (event) => {
+    event.preventDefault();
+    renderer.open(event.dataTransfer.files[0].path);
+    return false;
+};
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight - info_line_height;
+
+// Give the window and canvas a little time to settle... (may prevent sudden jerk during load).
+
+setTimeout(() => {
+    ipcRenderer.send("renderer_ready", null);
+    unitbox.innerHTML = "No file loaded. Use file menu or drag-and-drop.";
+}, 200);
+
+            </script>
+    </body>
+</html>
