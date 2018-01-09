@@ -107,7 +107,8 @@ class AttackGoal {
             const to = Geometry.reduceEnd(ship, enemy, attackDistance);
             const dist = Geometry.distance(ship, to);
             const turns = Math.floor(dist / constants.MAX_SPEED);
-            return {ship, to, turns, dist};
+            const angle = Geometry.angleInDegree(enemy, ship);
+            return {ship, to, turns, dist, angle};
         }).sort((a, b) => a.dist - b.dist);
 
         if (!enemy.isUndocked() || tuples.length < 2 || tuples[1].dist - tuples[0].dist < constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2) {
@@ -178,9 +179,6 @@ class AttackGoal {
 
             tuples = tuples.filter(t => t.dist <= enemyCircle.radius + constants.MAX_SPEED + constants.SHIP_RADIUS);
 
-
-
-
             const tupleIntersections = tuples
                 .map(t => ({
                     x: t.ship.x,
@@ -244,59 +242,87 @@ class AttackGoal {
                 const groupingAngle = Geometry.averageAngle(g.intersection.start, g.intersection.end);
                 log.log("angle: " + groupingAngle);
 
-                const initalGroupingPosition = {
-                    x: enemy.x + constants.NEXT_TICK_ATTACK_RADIUS * Math.cos(Geometry.toRad(groupingAngle)),
-                    y: enemy.y + constants.NEXT_TICK_ATTACK_RADIUS * Math.sin(Geometry.toRad(groupingAngle)),
-                    radius: 1,
-                };
+                g.tuples.sort((a,b) => Geometry.angleBetween(groupingAngle, a) - Geometry.angleBetween(groupingAngle, b));
 
-                log.log(`pos: [${initalGroupingPosition.x}, ${initalGroupingPosition.y}]`);
+                const discreteGroupingPositions = [];
+                for(let i = 0; i < g.tuples.length; i++) {
+                    const groupingPositions = this.genGroupingPositions(groupingAngle, enemyCircle, g.tuples.length, discreteGroupingPositions);
 
-                const groupingPositions = [initalGroupingPosition];
-                let i = 0;
-                while (groupingPositions.length < g.tuples.length) {
-                    i++;
-                    if (i > 5) break;
+                    const index = groupingPositions
+                        .sort((a, b) => a.angle - b.angle)
+                        .findIndex((pos) => pos.index === i);
 
-                    if (groupingPositions.length === 1) {
-                        const newPositions = Geometry.intersectCircles(initalGroupingPosition, enemyCircle);
-                        newPositions.forEach(p => {
-                            p.radius = 1;
-                        });
-                        groupingPositions.concat(newPositions);
-                        continue;
-                    }
+                    const ship = g.tuples[index].ship;
+                    const to = groupingPositions[index];
 
-                    const generateFrom = groupingPositions[groupingPositions.length - 2];
-                    const intersections = Geometry.intersectCircles(generateFrom, enemyCircle);
-                    intersections.forEach(i => {
-                        i.radius = 1;
-                        if (!groupingPositions.some(p => p.x === i.x && p.y === i.y)) {
-                            groupingPositions.push(i);
-                        }
-                    });
+                    const requestedVector = Simulation.toVector(Math.max(1, Geometry.distance(ship, to)), Geometry.angleInDegree(ship, to));
+                    to.x = ship.x + requestedVector.x;
+                    to.y = ship.y + requestedVector.y;
 
+                    discreteGroupingPositions.push(to);
+
+                    const {speed, angle} = findPath(gameMap, ship, to);
+                    groupingCommands.push(new ActionThrust(ship, speed, angle));
                 }
 
-                groupingPositions.forEach((p, i) => log.log(`pos(${i}): [${p.x}, ${p.y}]`));
-
-                g.tuples.forEach(t => {
-                    let minDistance = Infinity;
-                    let minPosition;
-                    groupingPositions.forEach(pos => {
-                        const dist = Geometry.distance(pos, t.ship);
-                        if (dist < minDistance) {
-                            minDistance = dist;
-                            minPosition = pos;
-                        }
-                    });
-                    const {speed, angle} = findPath(gameMap, t.ship, initalGroupingPosition);
-                    groupingCommands.push(new ActionThrust(t.ship, speed, angle));
-                });
+                discreteGroupingPositions.forEach((p, i) => log.log(`pos(${i}): [${p.x}, ${p.y}]`));
             });
 
             return groupingCommands;
         }
+    }
+
+    static genGroupingPositions(groupingAngle, enemyCircle, numGen, groupingPositions) {
+        if(!groupingPositions) groupingPositions = [];
+
+        if(groupingPositions.length === 0) {
+            const initialGroupingPosition = {
+                x: enemyCircle.x + constants.NEXT_TICK_ATTACK_RADIUS * Math.cos(Geometry.toRad(groupingAngle)),
+                y: enemyCircle.y + constants.NEXT_TICK_ATTACK_RADIUS * Math.sin(Geometry.toRad(groupingAngle)),
+                radius: 1,
+                index: 0,
+            };
+
+            initialGroupingPosition.angle = Geometry.angleBetween(groupingAngle, Geometry.angleInDegree(enemyCircle, initialGroupingPosition));
+
+            log.log(`pos: [${initialGroupingPosition.x}, ${initialGroupingPosition.y}]`);
+
+            groupingPositions = [initialGroupingPosition];
+        }
+
+        let i = groupingPositions.length - 1;
+        while (groupingPositions.length < numGen) {
+            i++;
+
+            if (i % 2 === 1) {
+                const generateFrom = groupingPositions[Math.max(0, i - 4)];
+                const intersections = Geometry.intersectCircles(generateFrom, enemyCircle);
+
+                let newGroupingPosition = intersections[0];
+                if(!groupingPositions.find(pos => Math.abs(pos.x - intersections[1].x) < 0.00001 && Math.abs(pos.y - intersections[1].y) < 0.00001)) {
+                    newGroupingPosition = intersections[1];
+                }
+                newGroupingPosition.radius = 1;
+                newGroupingPosition.index = i;
+                groupingPositions.push(newGroupingPosition);
+            } else {
+                const ship1 = groupingPositions[i-1];
+                const ship2 = groupingPositions[Math.max(0, i-5)];
+
+                const intersections = Geometry.intersectCircles(ship1, ship2);
+
+                let newGroupingPosition = intersections[0];
+                if(Geometry.distance(intersections[1], enemyCircle) > Geometry.distance(intersections[0], enemyCircle)) {
+                    newGroupingPosition = intersections[1];
+                }
+                newGroupingPosition.radius = 1;
+                newGroupingPosition.index = i;
+                newGroupingPosition.angle = Geometry.angleBetween(groupingAngle, Geometry.angleInDegree(enemyCircle, newGroupingPosition));
+                groupingPositions.push(newGroupingPosition);
+            }
+        }
+
+        return groupingPositions;
     }
 
     static navigateRetreat(gameMap, ship, retreatPoint, obstacles) {
