@@ -1,0 +1,3 @@
+[submodule "chlorine"]
+	path = chlorine
+	url = https://github.com/fohristiwhirl/chlorine.git

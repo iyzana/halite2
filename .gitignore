@@ -14,6 +14,3 @@ __pycache__
 *.pyc
 
 node_modules/
-
-#offline viewer
-chlorine/*
