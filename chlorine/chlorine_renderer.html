@@ -754,10 +754,10 @@ function make_renderer() {
     };
 
     renderer.mousemove = (event) =>  {
-        let scale = Math.min(canvas.width / renderer.game.width, canvas.height / renderer.game.height);
+        let scale = Math.min(canvas.width / renderer.game.width, canvas.height / renderer.game.height) * renderer.cameraZoom;
 
-        let worldx = event.offsetX / scale;
-        let worldy = event.offsetY / scale;
+        let worldx = event.offsetX / scale + renderer.cameraPosition[0];
+        let worldy = event.offsetY / scale + renderer.cameraPosition[1];
         coordinatebox.innerHTML = `(x: ${worldx.toFixed(2)}, y: ${worldy.toFixed(2)})`;
     };
 
