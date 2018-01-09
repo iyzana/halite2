@@ -39,14 +39,15 @@ const distFunc = (a, b) => {
 
     return Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
 };
-const maxSingleLinkDist = 6;
-const maxCompleteLinkDist = 15;
+const maxSingleLinkDist = 5;
+const maxCompleteLinkDist = 25;
 
 function cluster(points) {
     let nextId = 0;
     const clusters = new Map(points.map(p => [nextId++, [p]]));
     const distanceMap = new Map();
 
+    // build distance map
     clusters.forEach((cluster1, id1) => {
         distanceMap.set(id1, new Map());
 
@@ -63,18 +64,36 @@ function cluster(points) {
         });
     });
 
-    let nearestIds = nearestClusters(distanceMap);
+    // filter out points, that can never fulfill maxSingleLinkDist
+    distanceMap.forEach((cluster1Map, id1) => {
+        let useless = true;
+        for (const [id2, distances] of cluster1Map.entries()) {
+            if (distances.minDist <= maxSingleLinkDist) {
+                useless = false;
+                break;
+            }
+        }
+
+        if (useless) {
+            distanceMap.delete(id1);
+            distanceMap.forEach(cluster3Map => {
+                cluster3Map.delete(id1);
+            });
+        }
+    });
+
+    let nearestIds = nearestClusters(distanceMap, clusters);
 
     while (nearestIds !== undefined) {
         merge(nearestIds[0], nearestIds[1], clusters, distanceMap);
 
-        nearestIds = nearestClusters(distanceMap);
+        nearestIds = nearestClusters(distanceMap, clusters);
     }
 
     return Array.from(clusters.values());
 }
 
-function nearestClusters(distanceMap) {
+function nearestClusters(distanceMap, clusters) {
     let minDist = Infinity;
     let minValue = undefined;
 
@@ -88,11 +107,15 @@ function nearestClusters(distanceMap) {
                 return;
             if (distances.maxDist > maxCompleteLinkDist)
                 return;
+            if (distances.minDist >= minDist)
+                return;
+            const newSize = clusters.get(id1).length + clusters.get(id2).length;
+            const density = newSize / distances.maxDist;
+            if (density <= Math.pow(newSize, 0.7) / 8)
+                return;
 
-            if (distances.maxDist < minDist) {
-                minDist = distances.maxDist;
-                minValue = [id1, id2];
-            }
+            minDist = distances.minDist;
+            minValue = [id1, id2];
         });
     });
 
@@ -108,13 +131,14 @@ function merge(id1, id2, clusters, distanceMap) {
     clusters.delete(id2);
 
     const distancesFrom1 = distanceMap.get(id1);
-    const distancesFrom2 = distanceMap.get(id2);
 
     distancesFrom1.delete(id2);
     distanceMap.delete(id2);
 
     distancesFrom1.forEach((distance13, id3) => {
-        const distance23 = distancesFrom2.get(id3);
+        const smaller = id2 < id3 ? id2 : id3;
+        const bigger = id2 > id3 ? id2 : id3;
+        const distance23 = distanceMap.get(smaller).get(bigger);
 
         const updatedDistance = {
             minDist: Math.min(distance13.minDist, distance23.minDist),
@@ -122,15 +146,14 @@ function merge(id1, id2, clusters, distanceMap) {
         };
         distancesFrom1.set(id3, updatedDistance);
 
-        distanceMap.get(id3).set(id1, updatedDistance);
-        distanceMap.get(id3).delete(id2);
+        distanceMap.get(smaller).delete(bigger);
     });
-
 }
 
 function generateColor(id, count) {
     const hue = id * (360 / count) % 360;
-    return `hsl(${hue}, 100%, 20%)`;
+    const light = [20, 30, 40, 50, 60, 70, 80][id % 7];
+    return `hsl(${hue}, 100%, ${light}%)`;
 }
 
 function clusterObjects(positions) {
@@ -227,6 +250,7 @@ function make_renderer() {
     renderer.cameraPosition = [0, 0];
     renderer.dragStartCameraPosition = [0, 0];
 
+    renderer.cluster_cache = {};
     renderer.measure_entity = null;
 
     try {
@@ -896,8 +920,16 @@ function make_renderer() {
         let next_frame = (renderer.turn > renderer.game.frames.length - 2) ? null : renderer.game.frames[renderer.turn + 1];
 
         if (renderer.clusters) {
-            Object.values(frame.ships).forEach (ships => {
-                const clusters = clusterObjects(Object.values(ships));
+            Object.entries(frame.ships).forEach(([pid, ships]) => {
+                if (!renderer.cluster_cache[renderer.turn]) {
+                    renderer.cluster_cache[renderer.turn] = {};
+                }
+                const cluster_cache = renderer.cluster_cache[renderer.turn];
+                if (!cluster_cache[pid]) {
+                    cluster_cache[pid] = clusterObjects(Object.values(ships));
+                }
+
+                const clusters = cluster_cache[pid];
 
                 clusters.forEach(cluster => {
                     context.fillStyle = cluster.color;
@@ -962,7 +994,7 @@ function make_renderer() {
                                 selected_ship = frame.ships[pid2][sid2];
                                 selected_ship_player = pid2;
                             }
-                        }	
+                        }
                     }
                 }
 

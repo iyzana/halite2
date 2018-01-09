@@ -1,14 +1,15 @@
 const Geometry = require("../hlt/Geometry");
 
 const distFunc = (a, b) => Geometry.distance(a, b);
-const maxSingleLinkDist = 6;
-const maxCompleteLinkDist = 15;
+const maxSingleLinkDist = 5;
+const maxCompleteLinkDist = 25;
 
 function cluster(points) {
     let nextId = 0;
     const clusters = new Map(points.map(p => [nextId++, [p]]));
     const distanceMap = new Map();
 
+    // build distance map
     clusters.forEach((cluster1, id1) => {
         distanceMap.set(id1, new Map());
 
@@ -25,18 +26,37 @@ function cluster(points) {
         });
     });
 
-    let nearestIds = nearestClusters(distanceMap);
+    // filter out points, that can never fulfill maxSingleLinkDist
+    distanceMap.forEach((cluster1Map, id1) => {
+        let useless = true;
+        for (const [id2, distances] of cluster1Map.entries()) {
+            if (distances.minDist <= maxSingleLinkDist) {
+                useless = false;
+                break;
+            }
+        }
+
+        if (useless) {
+            console.log("useless");
+            distanceMap.delete(id1);
+            distanceMap.forEach(cluster3Map => {
+                cluster3Map.delete(id1);
+            });
+        }
+    });
+
+    let nearestIds = nearestClusters(distanceMap, clusters);
 
     while (nearestIds !== undefined) {
         merge(nearestIds[0], nearestIds[1], clusters, distanceMap);
 
-        nearestIds = nearestClusters(distanceMap);
+        nearestIds = nearestClusters(distanceMap, clusters);
     }
 
     return Array.from(clusters.values());
 }
 
-function nearestClusters(distanceMap) {
+function nearestClusters(distanceMap, clusters) {
     let minDist = Infinity;
     let minValue = undefined;
 
@@ -44,17 +64,21 @@ function nearestClusters(distanceMap) {
         cluster1Map.forEach((distances, id2) => {
             // only check from one side
             if (!(id1 < id2))
-                return;
+                throw "searching in upper half";
 
             if (distances.minDist > maxSingleLinkDist)
                 return;
             if (distances.maxDist > maxCompleteLinkDist)
                 return;
+            if (distances.minDist >= minDist)
+                return;
+            const newSize = clusters.get(id1).length + clusters.get(id2).length;
+            const density = newSize / distances.maxDist;
+            if (density <= Math.pow(newSize, 0.7) / 8)
+                return;
 
-            if (distances.maxDist < minDist) {
-                minDist = distances.maxDist;
-                minValue = [id1, id2];
-            }
+            minDist = distances.minDist;
+            minValue = [id1, id2];
         });
     });
 
@@ -70,13 +94,14 @@ function merge(id1, id2, clusters, distanceMap) {
     clusters.delete(id2);
 
     const distancesFrom1 = distanceMap.get(id1);
-    const distancesFrom2 = distanceMap.get(id2);
 
     distancesFrom1.delete(id2);
     distanceMap.delete(id2);
 
     distancesFrom1.forEach((distance13, id3) => {
-        const distance23 = distancesFrom2.get(id3);
+        const smaller = id2 < id3 ? id2 : id3;
+        const bigger = id2 > id3 ? id2 : id3;
+        const distance23 = distanceMap.get(smaller).get(bigger);
 
         const updatedDistance = {
             minDist: Math.min(distance13.minDist, distance23.minDist),
@@ -84,10 +109,8 @@ function merge(id1, id2, clusters, distanceMap) {
         };
         distancesFrom1.set(id3, updatedDistance);
 
-        distanceMap.get(id3).set(id1, updatedDistance);
-        distanceMap.get(id3).delete(id2);
+        distanceMap.get(smaller).delete(bigger);
     });
-
 }
 
 module.exports = cluster;
