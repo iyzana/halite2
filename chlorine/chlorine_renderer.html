@@ -739,8 +739,17 @@ function make_renderer() {
     };
 
     renderer.scroll = (event) => {
+        const scale = Math.min(canvas.width / renderer.game.width, canvas.height / renderer.game.height);
+        const oldScale =  scale * renderer.cameraZoom;
         renderer.cameraZoom += event.wheelDelta / 720.0;
         renderer.cameraZoom = Math.max(1, Math.min(renderer.cameraZoom, 7));
+        const newScale = scale * renderer.cameraZoom;
+
+        renderer.cameraPosition[0] += event.offsetX / oldScale;
+        renderer.cameraPosition[0] -= event.offsetX / newScale;
+        renderer.cameraPosition[1] += event.offsetY / oldScale;
+        renderer.cameraPosition[1] -= event.offsetY / newScale;
+
         renderer.draw();
     };
 
