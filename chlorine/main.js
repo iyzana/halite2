@@ -221,7 +221,7 @@ function make_main_menu() {
 						windows.send("renderer", "toggle", "tails");
 					},
 					type: "checkbox",
-					checked: true,
+					checked: false,
 				},
 				{
 					label: "Pointers",
