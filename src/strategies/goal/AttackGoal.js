@@ -111,7 +111,7 @@ class AttackGoal {
             return {ship, to, turns, dist, angle};
         }).sort((a, b) => a.dist - b.dist);
 
-        if (!enemy.isUndocked() || tuples.length < 2 || tuples[1].dist - tuples[0].dist < constants.WEAPON_RADIUS + constants.SHIP_RADIUS * 2) {
+        if (!enemy.isUndocked() || tuples.length < 2 || tuples[1].dist - tuples[0].dist < constants.NEXT_TICK_ATTACK_RADIUS) {
             //the two closest ships can reach the enemy in the same number of turns or the enemy is docked
             return tuples.map(t => {
                 const {speed, angle} = findPath(gameMap, t.ship, t.to);
