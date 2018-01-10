@@ -35,42 +35,43 @@ class DockingGoal {
     }
 
     getShipCommands(gameMap, ships) {
-        return ships.map(ship => {
-            if (ship.canDock(this.planet)) {
-                return new ActionDock(ship, this.planet, true);
-            } else {
-                return DockingGoal.navigatePlanet(gameMap, ship, this.planet);
-            }
-        });
+        const reachedBeforeUndockRadius = this.planet.radius + constants.DOCK_RADIUS + constants.DOCK_TURNS * 2 * constants.MAX_SPEED;
+        const myShipsInRange = gameMap.myShips
+            .filter(s => s.isUndocked())
+            .filter(s => Geometry.distance(s, this.planet) < reachedBeforeUndockRadius)
+            .length;
+        const producedShipsInRange = gameMap.planets
+            .filter(p => p.isOwnedByMe())
+            .filter(p => Geometry.distance(this.planet, p) < reachedBeforeUndockRadius)
+            .map(p => Simulation.shipsInTurns(p, (reachedBeforeUndockRadius - Geometry.distance(p, this.planet) / 2) / constants.MAX_SPEED))
+            .reduce((acc, c) => acc + c, 0);
+        const opponentShipsInRange = gameMap.enemyShips
+            .filter(s => s.isUndocked())
+            .filter(s => Geometry.distance(s, this.planet) < reachedBeforeUndockRadius)
+            .length;
+        const dockableShipCount = Math.max(0, myShipsInRange * 1.5 + producedShipsInRange - opponentShipsInRange);
 
-        // const reachedBeforeUndockRadius = this.planet.radius + constants.DOCK_RADIUS + constants.DOCK_TURNS * 2 * constants.MAX_SPEED;
-        // const myShipsInRange = gameMap.myShips
-        //     .filter(s => s.isUndocked())
-        //     .filter(s => Geometry.distance(s, this.planet) < reachedBeforeUndockRadius)
-        //     .length;
-        // const producedShipsInRange = gameMap.planets
-        //     .filter(p => p.isOwnedByMe())
-        //     .filter(p => Geometry.distance(this.planet, p) < reachedBeforeUndockRadius)
-        //     .map(p => Simulation.shipsInTurns(p, (reachedBeforeUndockRadius - Geometry.distance(p, this.planet)) / constants.MAX_SPEED))
-        //     .reduce((acc, c) => acc + c, 0);
-        // const opponentShipsInRange = gameMap.enemyShips
-        //     .filter(s => s.isUndocked())
-        //     .filter(s => Geometry.distance(s, this.planet) < reachedBeforeUndockRadius)
-        //     .length;
-        // const dockableShipCount = Math.max(0, myShipsInRange * 1.5 + producedShipsInRange - opponentShipsInRange);
-        //
-        // const movement = ships
-        //     .filter(s => !s.canDock(this.planet))
-        //     .map(s => DockingGoal.navigatePlanet(gameMap, s, this.planet));
-        //
-        // const dockableShips = ships
-        //     .filter(s => s.canDock(this.planet));
-        // const dockMoves = dockableShips
-        //     .slice(0, dockableShipCount)
-        //     .map(s => new ActionDock(s, this.planet, true));
-        // const stillMoves = dockableShips
-        //     .slice(dockableShipCount, dockableShips.length)
-        //     .map(s => new ActionThrust(s, 0, 0));
+        const movement = ships
+            .filter(s => !s.canDock(this.planet))
+            .map(s => DockingGoal.navigatePlanet(gameMap, s, this.planet));
+
+        const dockableShips = ships
+            .filter(s => s.canDock(this.planet));
+        const dockMoves = dockableShips
+            .slice(0, dockableShipCount)
+            .map(s => new ActionDock(s, this.planet, true));
+        const stillMoves = dockableShips
+            .slice(dockableShipCount, dockableShips.length)
+            .map(s => new ActionThrust(s, 0, 0));
+
+        return [...movement, ...dockMoves, ...stillMoves];
+        // return ships.map(ship => {
+        //     if (ship.canDock(this.planet)) {
+        //         return new ActionDock(ship, this.planet, true);
+        //     } else {
+        //         return DockingGoal.navigatePlanet(gameMap, ship, this.planet);
+        //     }
+        // });
     }
 
     static navigatePlanet(gameMap, ship, planet) {
@@ -131,7 +132,7 @@ class DockingGoal {
             else
                 this.score += 0.025;
             this.score += this.planet.freeDockingSpots / 6 * 0.2 - 0.1;
-            // this.score -= densityScore * 0.02 - 0.01;
+            this.score -= densityScore * 0.01 - 0.005;
         }
     }
 }

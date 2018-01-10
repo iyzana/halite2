@@ -113,7 +113,7 @@ class DefenseGoal {
         };
 
         // ship is flying in the direction of our planet
-        const onItsWay = Geometry.intersectSegmentCircle(ship, end, this.planet, constants.DOCK_RADIUS + constants.SHIP_RADIUS);
+        const onItsWay = Geometry.intersectSegmentCircle(ship, end, this.planet, constants.DOCK_RADIUS + constants.SHIP_RADIUS + 3);
         const aroundHere = Geometry.distance(ship, this.planet) < this.planet.radius + constants.DOCK_RADIUS + constants.NEXT_TICK_ATTACK_RADIUS;
 
         return onItsWay || aroundHere;
@@ -126,7 +126,7 @@ class DefenseGoal {
     }
 
     effectivenessPerShip(gameMap, shipSet) {
-        return 1; // Math.ceil(this.enemyCount / defenseBalanceFactor);
+        return 1 + this.planet.dockedShips.length; // Math.ceil(this.enemyCount / defenseBalanceFactor);
     }
 
     getShipCommands(gameMap, ships) {
@@ -137,9 +137,9 @@ class DefenseGoal {
             .filter(ship => Geometry.distance(ship, this.endangeredShip) < this.enemyDistance + 4);
 
         const shipsInRange = ships.filter(s => s.isUndocked());
-        const undockingShips = this.planet.dockedShips.filter(ship => ship.isUndocking());
+        const undockingShips = attackedShips.filter(ship => ship.isUndocking());
 
-        const shipsStillNeeded = this.enemyCount - (shipsInRange.length + undockingShips.length + nearShips + this.producedShips) * defenseBalanceFactor;
+        const shipsStillNeeded = this.enemyCount - (shipsInRange.length + undockingShips.length + nearShips.length + this.producedShips) * defenseBalanceFactor;
 
         let shipsToUndock = [];
         if (shipsStillNeeded > 0 && attackedShips.filter(ship => ship.isDocked()).length > this.producedShips) {
@@ -166,7 +166,7 @@ class DefenseGoal {
     }
 
     calculateGoalScore(gameMap) {
-        this.score = 1.2;
+        this.score = 1.25;
     }
 
     toString() {

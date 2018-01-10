@@ -30,7 +30,7 @@ class AttackGoal {
 
         if (enemies.length === 1)
             return 1;
-        return Math.min(15, Math.ceil(enemies.length * 1.2));
+        return Math.min(8, Math.ceil(enemies.length * 1.2));
     }
 
     getShipCommands(gameMap, ships, grantedShips) {
@@ -79,8 +79,8 @@ class AttackGoal {
 
                 const enemiesOnWay = gameMap.enemyShips
                     .filter(e => e.isUndocked())
-                    .filter(e => Geometry.distance(e, enemy) > 15)
-                    .map(e => ({x: e.x, y: e.y, radius: constants.NEXT_TICK_ATTACK_RADIUS});
+                    .filter(e => Geometry.distance(e, this.enemy) > 15)
+                    .map(e => ({x: e.x, y: e.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
                 let obstacles = gameMap.enemyShips
                     .filter(ship => ship.isUndocked())
                     .concat(Simulation.newEnemiesNextTurn(gameMap))
@@ -125,7 +125,7 @@ class AttackGoal {
         const enemiesOnWay = gameMap.enemyShips
             .filter(e => e.isUndocked())
             .filter(e => Geometry.distance(e, enemy) > 15)
-            .map(e => ({x: e.x, y: e.y, radius: constants.NEXT_TICK_ATTACK_RADIUS});
+            .map(e => ({x: e.x, y: e.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
 
         if (!enemy.isUndocked() || tuples.length < 2 || tuples[1].dist - tuples[0].dist < constants.NEXT_TICK_ATTACK_RADIUS) {
             //the two closest ships can reach the enemy in the same number of turns or the enemy is docked
