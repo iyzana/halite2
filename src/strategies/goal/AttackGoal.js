@@ -104,10 +104,28 @@ class AttackGoal {
 
         const attackDistance = enemy.isUndocked() ? 0 : constants.EFFECTIVE_ATTACK_RADIUS - 1;
         let tuples = ships.map(ship => {
-            const to = Geometry.reduceEnd(ship, enemy, attackDistance);
+            let to = Geometry.reduceEnd(ship, enemy, attackDistance);
             const dist = Geometry.distance(ship, to);
             const turns = Math.floor(dist / constants.MAX_SPEED);
             const angle = Geometry.angleInDegree(enemy, ship);
+
+            if(!enemy.isUndocked()) {
+                const dockedPlanet = gameMap.planets.find(p => p.id === enemy.dockedPlanetId);
+                const shipSpawnPoint = dockedPlanet.calcShipSpawnPoint();
+                let bestAttackPosition = {
+                    x: enemy.x - shipSpawnPoint.x,
+                    y: enemy.y - shipSpawnPoint.y,
+                };
+
+                bestAttackPosition = Geometry.normalizeVector(bestAttackPosition);
+                bestAttackPosition = {
+                    x: enemy.x + bestAttackPosition.x * constants.WEAPON_RADIUS,
+                    y: enemy.y + bestAttackPosition.y * constants.WEAPON_RADIUS,
+                };
+
+                to = bestAttackPosition;
+            }
+
             return {ship, to, turns, dist, angle};
         }).sort((a, b) => a.dist - b.dist);
 
