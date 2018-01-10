@@ -122,7 +122,7 @@ function computeMapStats(gameMap) {
 function postprocessActions(gameMap, actions) {
     const dockingShips = actions.filter(action => action instanceof ActionDock)
         .map(action => action.ship);
-    const dockedShips = gameMap.myShips
+    const dockedShips = gameMap.allShips
         .filter(ship => !ship.isUndocked());
     const planets = gameMap.planets;
     const stationaries = [...dockingShips, ...dockedShips, ...planets];
