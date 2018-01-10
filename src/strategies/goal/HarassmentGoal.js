@@ -1,3 +1,4 @@
+const AttackGoal = require("./AttackGoal");
 const log = require('../../hlt/Log');
 const ActionThrust = require("../ActionThrust");
 const Geometry = require("../../hlt/Geometry");
@@ -67,7 +68,7 @@ class HarassmentGoal {
             radius: constants.NEXT_TICK_ATTACK_RADIUS
         }));
 
-        let targetPos = Geometry.reduceEnd(ship, target, 2);
+        let targetPos = AttackGoal.calculateBestDockedShipAttackPosition(gameMap, target, ship);
         //run away when we are in attack range of target and enemy is in range
         //this prevents crashing into target
         if (Geometry.distance(targetPos, ship) < constants.WEAPON_RADIUS + constants.SHIP_RADIUS && enemies.length >= 1) {
