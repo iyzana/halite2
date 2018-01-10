@@ -58,6 +58,7 @@ class HarassmentGoal {
 
         const enemies = gameMap.enemyShips
             .filter(enemy => enemy.isUndocked())
+            .concat(Simulation.newEnemiesNextTurn(gameMap))
             .filter(enemy => Geometry.distance(enemy, ship) < constants.MAX_SPEED * 2 + constants.WEAPON_RADIUS + 2 * constants.SHIP_RADIUS + 1);
 
         const obstacles = enemies.map(enemy => ({

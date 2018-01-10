@@ -79,6 +79,7 @@ class AttackGoal {
 
                 let obstacles = gameMap.enemyShips
                     .filter(ship => ship.isUndocked())
+                    .concat(Simulation.newEnemiesNextTurn(gameMap))
                     .map(enemy => ({x: enemy.x, y: enemy.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
 
                 if(ships.length !== 1)
@@ -152,6 +153,7 @@ class AttackGoal {
             const enemies = gameMap.enemyShips
                 .filter(e => e.isUndocked())
                 .filter(e => e !== enemy)
+                .concat(Simulation.newEnemiesNextTurn(gameMap))
                 .filter(e => Geometry.distance(enemy, e) < constants.EFFECTIVE_ATTACK_RADIUS);
 
             log.log("enemies: " + enemies);
