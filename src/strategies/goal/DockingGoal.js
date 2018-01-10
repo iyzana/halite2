@@ -1,3 +1,4 @@
+const log = require("../../hlt/Log");
 const Simulation = require('../Simulation');
 const Geometry = require("../../hlt/Geometry");
 const constants = require("../../hlt/Constants");
