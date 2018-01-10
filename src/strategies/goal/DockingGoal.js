@@ -42,6 +42,35 @@ class DockingGoal {
                 return DockingGoal.navigatePlanet(gameMap, ship, this.planet);
             }
         });
+
+        // const reachedBeforeUndockRadius = this.planet.radius + constants.DOCK_RADIUS + constants.DOCK_TURNS * 2 * constants.MAX_SPEED;
+        // const myShipsInRange = gameMap.myShips
+        //     .filter(s => s.isUndocked())
+        //     .filter(s => Geometry.distance(s, this.planet) < reachedBeforeUndockRadius)
+        //     .length;
+        // const producedShipsInRange = gameMap.planets
+        //     .filter(p => p.isOwnedByMe())
+        //     .filter(p => Geometry.distance(this.planet, p) < reachedBeforeUndockRadius)
+        //     .map(p => Simulation.shipsInTurns(p, (reachedBeforeUndockRadius - Geometry.distance(p, this.planet)) / constants.MAX_SPEED))
+        //     .reduce((acc, c) => acc + c, 0);
+        // const opponentShipsInRange = gameMap.enemyShips
+        //     .filter(s => s.isUndocked())
+        //     .filter(s => Geometry.distance(s, this.planet) < reachedBeforeUndockRadius)
+        //     .length;
+        // const dockableShipCount = Math.max(0, myShipsInRange * 1.5 + producedShipsInRange - opponentShipsInRange);
+        //
+        // const movement = ships
+        //     .filter(s => !s.canDock(this.planet))
+        //     .map(s => DockingGoal.navigatePlanet(gameMap, s, this.planet));
+        //
+        // const dockableShips = ships
+        //     .filter(s => s.canDock(this.planet));
+        // const dockMoves = dockableShips
+        //     .slice(0, dockableShipCount)
+        //     .map(s => new ActionDock(s, this.planet, true));
+        // const stillMoves = dockableShips
+        //     .slice(dockableShipCount, dockableShips.length)
+        //     .map(s => new ActionThrust(s, 0, 0));
     }
 
     static navigatePlanet(gameMap, ship, planet) {
@@ -69,8 +98,12 @@ class DockingGoal {
         const enemyDifference = (heuristic.enemyDistance.biggest - heuristic.enemyDistance.smallest) || heuristic.enemyDistance.smallest;
         const enemyScore = ((heuristic.enemyDistance.average[this.planet.id] - heuristic.enemyDistance.smallest) / enemyDifference);
 
+        // if in early game on 4 player map
         if (gameMap.numberOfPlayers === 4 && gameMap.populatedPlanetsPct <= 0.6) {
+            // docking is more important on 4 player maps
             this.score += 0.01;
+
+            // docking further out is good on 4 player maps
             this.score += distance / (gameMap.maxDistance / 2) * 0.1 - 0.05;
 
             const nearestOpponent = Simulation.nearestEntity(gameMap.enemyShips, this.planet).dist;
@@ -79,9 +112,17 @@ class DockingGoal {
             else
                 this.score += 0.025;
 
+            // docking larger planets only lessens travel times so only value it a bit
             this.score += radiusScore * 0.002 - 0.001;
             this.score += densityScore * 0.02 - 0.01;
+
+            // try not to dock near enemy planets to avoid early fighting
             this.score += enemyScore * 0.02 - 0.01;
+            /*
+            prefer emptier planets
+            this is useful for sending a few ship to planets that are a bit farther away
+            this way the planet sits on its own till it's full and then returns ships many turns later
+             */
             this.score += this.planet.freeDockingSpots / 6 * 0.1 - 0.05;
         } else if (gameMap.numberOfPlayers === 2) {
             const nearestOpponent = Simulation.nearestEntity(gameMap.enemyShips, this.planet).dist;

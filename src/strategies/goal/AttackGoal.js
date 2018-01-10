@@ -77,10 +77,15 @@ class AttackGoal {
 
                 log.log('running away with ships: ' + ships);
 
+                const enemiesOnWay = gameMap.enemyShips
+                    .filter(e => e.isUndocked())
+                    .filter(e => Geometry.distance(e, enemy) > 15)
+                    .map(e => ({x: e.x, y: e.y, radius: constants.NEXT_TICK_ATTACK_RADIUS});
                 let obstacles = gameMap.enemyShips
                     .filter(ship => ship.isUndocked())
                     .concat(Simulation.newEnemiesNextTurn(gameMap))
-                    .map(enemy => ({x: enemy.x, y: enemy.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
+                    .map(enemy => ({x: enemy.x, y: enemy.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}))
+                    .concat(enemiesOnWay);
 
                 if(ships.length !== 1)
                     obstacles = [];
@@ -117,10 +122,15 @@ class AttackGoal {
             return {ship, to, turns, dist, angle};
         }).sort((a, b) => a.dist - b.dist);
 
+        const enemiesOnWay = gameMap.enemyShips
+            .filter(e => e.isUndocked())
+            .filter(e => Geometry.distance(e, enemy) > 15)
+            .map(e => ({x: e.x, y: e.y, radius: constants.NEXT_TICK_ATTACK_RADIUS});
+
         if (!enemy.isUndocked() || tuples.length < 2 || tuples[1].dist - tuples[0].dist < constants.NEXT_TICK_ATTACK_RADIUS) {
             //the two closest ships can reach the enemy in the same number of turns or the enemy is docked
             return tuples.map(t => {
-                const {speed, angle} = findPath(gameMap, t.ship, t.to);
+                const {speed, angle} = findPath(gameMap, t.ship, t.to, enemiesOnWay);
                 return new ActionThrust(t.ship, speed, angle);
             });
         } else {
@@ -180,7 +190,7 @@ class AttackGoal {
                 .forEach(tuple => {
                     //just fly to attack target and avoid other enemies
                     log.log(tuple.ship + " just flying to target");
-                    const {speed, angle} = findPath(gameMap, tuple.ship, enemy, enemies);
+                    const {speed, angle} = findPath(gameMap, tuple.ship, enemy, enemiesOnWay);
                     groupingCommands.push(new ActionThrust(tuple.ship, speed, angle));
                 });
 
@@ -216,7 +226,7 @@ class AttackGoal {
                 .forEach(t => {
                     log.log(t.ship + " inside some enemy...navigating to target");
                     //we are inside some enemy
-                    const {speed, angle} = findPath(gameMap, t.ship, enemy, enemies);
+                    const {speed, angle} = findPath(gameMap, t.ship, enemy, enemiesOnWay);
                     groupingCommands.push(new ActionThrust(t.ship, speed, angle));
                 });
             tuples = tuples.filter(t => t.intersections.length !== 0);
@@ -268,7 +278,7 @@ class AttackGoal {
 
                     discreteGroupingPositions.push(to);
 
-                    const {speed, angle} = findPath(gameMap, ship, to);
+                    const {speed, angle} = findPath(gameMap, ship, to, enemiesOnWay);
                     groupingCommands.push(new ActionThrust(ship, speed, angle));
                 }
 
@@ -366,7 +376,7 @@ class AttackGoal {
         } else if (this.enemy.isUndocking()) {
             this.score = 1.045;
         } else {
-            this.score = 1.04;
+            this.score = 1.08;
             const distanceToMe = Simulation.nearestEntity(myPlanets, this.enemy).dist;
             if (distanceToMe > 60) {
                 this.score += 0.04;
