@@ -6,10 +6,14 @@ class Geometry {
      * @returns {number} distance
      */
     static distance(start, end) {
+        return Math.sqrt(this.distance2(start, end));
+    }
+
+    static distance2(start, end) {
         const dx = end.x - start.x;
         const dy = end.y - start.y;
 
-        return Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2));
+        return Math.pow(dx, 2) + Math.pow(dy, 2);
     }
 
     /**
