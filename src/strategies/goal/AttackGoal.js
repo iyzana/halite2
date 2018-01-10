@@ -111,20 +111,7 @@ class AttackGoal {
             const angle = Geometry.angleInDegree(enemy, ship);
 
             if(!enemy.isUndocked()) {
-                const dockedPlanet = gameMap.planets.find(p => p.id === enemy.dockedPlanetId);
-                const shipSpawnPoint = dockedPlanet.calcShipSpawnPoint();
-                let bestAttackPosition = {
-                    x: enemy.x - shipSpawnPoint.x,
-                    y: enemy.y - shipSpawnPoint.y,
-                };
-
-                bestAttackPosition = Geometry.normalizeVector(bestAttackPosition);
-                bestAttackPosition = {
-                    x: enemy.x + bestAttackPosition.x * constants.WEAPON_RADIUS,
-                    y: enemy.y + bestAttackPosition.y * constants.WEAPON_RADIUS,
-                };
-
-                to = bestAttackPosition;
+                to = this.calculateBestDockedShipAttackPosition(gameMap, enemy, ship);
             }
 
             return {ship, to, turns, dist, angle};
@@ -290,6 +277,23 @@ class AttackGoal {
 
             return groupingCommands;
         }
+    }
+
+    static calculateBestDockedShipAttackPosition(gameMap, enemy, ship) {
+        const dockedPlanet = gameMap.planets.find(p => p.id === enemy.dockedPlanetId);
+        const shipSpawnPoint = dockedPlanet.calcShipSpawnPoint();
+        let bestAttackPosition = {
+            x: enemy.x - shipSpawnPoint.x,
+            y: enemy.y - shipSpawnPoint.y,
+        };
+
+        bestAttackPosition = Geometry.normalizeVector(bestAttackPosition);
+        bestAttackPosition = {
+            x: enemy.x + bestAttackPosition.x * constants.WEAPON_RADIUS,
+            y: enemy.y + bestAttackPosition.y * constants.WEAPON_RADIUS,
+        };
+
+        return bestAttackPosition;
     }
 
     static genGroupingPositions(groupingAngle, enemyCircle, numGen, groupingPositions) {
