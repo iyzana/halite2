@@ -1,3 +1,4 @@
+const Ship = require('../hlt/Ship');
 const Geometry = require('../hlt/Geometry');
 const constants = require('../hlt/Constants');
 const dockingStatus = require('../hlt/DockingStatus');
@@ -38,6 +39,22 @@ class Simulation {
             x: start.x + speedVector.x,
             y: start.y + speedVector.y
         }
+    }
+
+    static newEnemiesNextTurn(gameMap) {
+        return gameMap.planets
+            .filter(p => p.isOwnedByEnemy())
+            .filter(p => p.currentProduction + this.productionWithShips(p.dockedShips.length) >= 72)
+            .map(planet => {
+                const location = planet.calcShipSpawnPoint();
+                const params = {
+                    x: location.x,
+                    y: location.y,
+                    radius: constants.SHIP_RADIUS,
+                    health: constants.BASE_SHIP_HEALTH,
+                };
+                return new Ship(gameMap, planet.ownerId, params);
+            });
     }
 
     static intersectWallsWithCircle(gameMap, circle) {
