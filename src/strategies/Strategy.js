@@ -114,9 +114,9 @@ function computeMapStats(gameMap) {
                 gameMap.planetHeuristics.biggestDistances = sum;
         });
 
-    gameMap.myShipClusters = cluster(gameMap.myShips)
-        .filter(cluster => cluster.length > 1);
-    log.log("clusters: " + gameMap.myShipClusters);
+    // gameMap.myShipClusters = cluster(gameMap.myShips)
+    //     .filter(cluster => cluster.length > 1);
+    // log.log("clusters: " + gameMap.myShipClusters);
 }
 
 function postprocessActions(gameMap, actions) {
