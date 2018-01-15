@@ -51,7 +51,16 @@ class AttackGoal {
                 }
                 return [];
             })
-            .filter(ship => Geometry.distance(closestShip, ship) < GROUPING_RADIUS);
+            .filter(ship => {
+                const c1 = Geometry.distance(closestShip, ship) < GROUPING_RADIUS;
+                const c2 = Math.abs(Geometry.distance(closestShip, this.enemy) - Geometry.distance(ship, this.enemy)) < 5;
+
+                if(!c1 && c2) {
+                    log.log(this + " " + ship + " now included in ourBunch");
+                }
+
+                return c1 || c2;
+            });
 
         const ourHealth = ourBunch.reduce((acc, c) => acc + c.health, 0);
         const enemyHealth = enemies.reduce((acc, c) => acc + c.health, 0);
@@ -115,7 +124,7 @@ class AttackGoal {
             const turns = Math.floor(dist / constants.MAX_SPEED);
             const angle = Geometry.angleInDegree(enemy, ship);
 
-            if(!enemy.isUndocked()) {
+            if (!enemy.isUndocked()) {
                 to = this.calculateBestDockedShipAttackPosition(gameMap, enemy, ship);
             }
 
@@ -170,7 +179,11 @@ class AttackGoal {
 
             const planetIntersections = gameMap.planets
                 .filter(p => Geometry.distance(p, enemyCircle) <= p.radius + enemyCircle.radius)
-                .map(p => Geometry.intersectCircles({x: p.x, y: p.y, radius: p.radius + constants.SHIP_RADIUS}, enemyCircle))
+                .map(p => Geometry.intersectCircles({
+                    x: p.x,
+                    y: p.y,
+                    radius: p.radius + constants.SHIP_RADIUS
+                }, enemyCircle))
                 .map(i => i.map(pos => Geometry.angleInDegree(enemyCircle, pos)))
                 .map(interval => {
                     if (interval.length === 1)
@@ -180,8 +193,8 @@ class AttackGoal {
                 })
                 .map(i => ({start: Math.ceil(i.start), end: Math.floor(i.end)}));
 
-            if(intersections.length !== 0 && planetIntersections.length !== 0)
-            intersections = Geometry.angleIntervalIntersections(planetIntersections.concat(intersections));
+            if (intersections.length !== 0 && planetIntersections.length !== 0)
+                intersections = Geometry.angleIntervalIntersections(planetIntersections.concat(intersections));
 
             log.log("intersections: " + JSON.stringify(intersections));
 
@@ -259,10 +272,10 @@ class AttackGoal {
                 const groupingAngle = Geometry.averageAngle(g.intersection.start, g.intersection.end);
                 log.log("angle: " + groupingAngle);
 
-                g.tuples.sort((a,b) => Geometry.angleBetween(groupingAngle, a) - Geometry.angleBetween(groupingAngle, b));
+                g.tuples.sort((a, b) => Geometry.angleBetween(groupingAngle, a) - Geometry.angleBetween(groupingAngle, b));
 
                 const discreteGroupingPositions = [];
-                for(let i = 0; i < g.tuples.length; i++) {
+                for (let i = 0; i < g.tuples.length; i++) {
                     const groupingPositions = this.genGroupingPositions(groupingAngle, enemyCircle, g.tuples.length, discreteGroupingPositions);
 
                     const index = groupingPositions
@@ -307,9 +320,9 @@ class AttackGoal {
     }
 
     static genGroupingPositions(groupingAngle, enemyCircle, numGen, groupingPositions) {
-        if(!groupingPositions) groupingPositions = [];
+        if (!groupingPositions) groupingPositions = [];
 
-        if(groupingPositions.length === 0) {
+        if (groupingPositions.length === 0) {
             const initialGroupingPosition = {
                 x: enemyCircle.x + constants.NEXT_TICK_ATTACK_RADIUS * Math.cos(Geometry.toRad(groupingAngle)),
                 y: enemyCircle.y + constants.NEXT_TICK_ATTACK_RADIUS * Math.sin(Geometry.toRad(groupingAngle)),
@@ -333,20 +346,20 @@ class AttackGoal {
                 const intersections = Geometry.intersectCircles(generateFrom, enemyCircle);
 
                 let newGroupingPosition = intersections[0];
-                if(!groupingPositions.find(pos => Math.abs(pos.x - intersections[1].x) < 0.00001 && Math.abs(pos.y - intersections[1].y) < 0.00001)) {
+                if (!groupingPositions.find(pos => Math.abs(pos.x - intersections[1].x) < 0.00001 && Math.abs(pos.y - intersections[1].y) < 0.00001)) {
                     newGroupingPosition = intersections[1];
                 }
                 newGroupingPosition.radius = 1;
                 newGroupingPosition.index = i;
                 groupingPositions.push(newGroupingPosition);
             } else {
-                const ship1 = groupingPositions[i-1];
-                const ship2 = groupingPositions[Math.max(0, i-5)];
+                const ship1 = groupingPositions[i - 1];
+                const ship2 = groupingPositions[Math.max(0, i - 5)];
 
                 const intersections = Geometry.intersectCircles(ship1, ship2);
 
                 let newGroupingPosition = intersections[0];
-                if(Geometry.distance(intersections[1], enemyCircle) > Geometry.distance(intersections[0], enemyCircle)) {
+                if (Geometry.distance(intersections[1], enemyCircle) > Geometry.distance(intersections[0], enemyCircle)) {
                     newGroupingPosition = intersections[1];
                 }
                 newGroupingPosition.radius = 1;
