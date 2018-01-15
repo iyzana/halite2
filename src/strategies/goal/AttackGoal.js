@@ -79,7 +79,7 @@ class AttackGoal {
 
                 const enemiesOnWay = gameMap.enemyShips
                     .filter(e => e.isUndocked())
-                    .filter(e => Geometry.distance(e, this.enemy) > 15)
+                    .filter(e => Geometry.distance(e, this.enemy) > 13)
                     .map(e => ({x: e.x, y: e.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
                 let obstacles = gameMap.enemyShips
                     .filter(ship => ship.isUndocked())
@@ -124,7 +124,7 @@ class AttackGoal {
 
         const enemiesOnWay = gameMap.enemyShips
             .filter(e => e.isUndocked())
-            .filter(e => Geometry.distance(e, enemy) > 15)
+            .filter(e => Geometry.distance(e, enemy) > 13)
             .map(e => ({x: e.x, y: e.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
 
         if (!enemy.isUndocked() || tuples.length < 2 || tuples[1].dist - tuples[0].dist < constants.NEXT_TICK_ATTACK_RADIUS) {
@@ -377,6 +377,13 @@ class AttackGoal {
             this.score = 1.045;
         } else {
             this.score = 1.08;
+
+            const undockedEnemies = gameMap.enemyShips.filter(e => e.isUndocked());
+            const distanceToNextUndocked = Simulation.nearestEntity(undockedEnemies, this.enemy).dist;
+            if (distanceToNextUndocked > 10) {
+                this.score += 0.02;
+            }
+
             const distanceToMe = Simulation.nearestEntity(myPlanets, this.enemy).dist;
             if (distanceToMe > 60) {
                 this.score += 0.04;

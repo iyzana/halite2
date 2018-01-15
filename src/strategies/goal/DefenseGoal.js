@@ -126,7 +126,7 @@ class DefenseGoal {
     }
 
     effectivenessPerShip(gameMap, shipSet) {
-        return 1 + this.planet.dockedShips.length; // Math.ceil(this.enemyCount / defenseBalanceFactor);
+        return Math.ceil(this.enemyCount / 4) + this.planet.dockedShips.length;
     }
 
     getShipCommands(gameMap, ships) {

@@ -49,7 +49,7 @@ class DockingGoal {
             .filter(s => s.isUndocked())
             .filter(s => Geometry.distance(s, this.planet) < reachedBeforeUndockRadius)
             .length;
-        const dockableShipCount = Math.max(0, myShipsInRange * 1.5 + producedShipsInRange - opponentShipsInRange);
+        const dockableShipCount = Math.max(0, myShipsInRange * 1.3 + producedShipsInRange * 0.8 - opponentShipsInRange);
 
         const movement = ships
             .filter(s => !s.canDock(this.planet))
