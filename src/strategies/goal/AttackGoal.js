@@ -139,7 +139,10 @@ class AttackGoal {
         if (!enemy.isUndocked() || tuples.length < 2 || tuples[1].dist - tuples[0].dist < constants.NEXT_TICK_ATTACK_RADIUS) {
             //the two closest ships can reach the enemy in the same number of turns or the enemy is docked
             return tuples.map(t => {
-                const {speed, angle} = findPath(gameMap, t.ship, t.to, enemiesOnWay);
+                const enemiesOnWayForShip = enemiesOnWay
+                    .filter(e => Geometry.distance(e, t.ship) < constants.NEXT_TICK_ATTACK_RADIUS + constants.MAX_SPEED);
+
+                const {speed, angle} = findPath(gameMap, t.ship, t.to, enemiesOnWayForShip);
                 return new ActionThrust(t.ship, speed, angle);
             });
         } else {
@@ -201,9 +204,11 @@ class AttackGoal {
             tuples
                 .filter(t => t.dist > enemyCircle.radius + constants.MAX_SPEED + constants.SHIP_RADIUS)
                 .forEach(tuple => {
+                    const enemiesOnWayForShip = enemiesOnWay
+                        .filter(e => Geometry.distance(e, tuple.ship) < constants.NEXT_TICK_ATTACK_RADIUS + constants.MAX_SPEED);
                     //just fly to attack target and avoid other enemies
                     log.log(tuple.ship + " just flying to target");
-                    const {speed, angle} = findPath(gameMap, tuple.ship, enemy, enemiesOnWay);
+                    const {speed, angle} = findPath(gameMap, tuple.ship, enemy, enemiesOnWayForShip);
                     groupingCommands.push(new ActionThrust(tuple.ship, speed, angle));
                 });
 
