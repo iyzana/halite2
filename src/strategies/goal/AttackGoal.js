@@ -343,6 +343,10 @@ class AttackGoal {
     static calculateBestDockedShipAttackPosition(gameMap, enemy, ship) {
         const dockedPlanet = gameMap.planets.find(p => p.id === enemy.dockedPlanetId);
         const shipSpawnPoint = dockedPlanet.calcShipSpawnPoint();
+
+        if(shipSpawnPoint === null)
+            return Geometry.reduceEnd(ship, enemy, constants.WEAPON_RADIUS - 1);
+
         let bestAttackPosition = {
             x: enemy.x - shipSpawnPoint.x,
             y: enemy.y - shipSpawnPoint.y,
