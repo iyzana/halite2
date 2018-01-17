@@ -427,7 +427,7 @@ class AttackGoal {
         } else if (this.enemy.isUndocking()) {
             this.score = 1.045;
         } else {
-            this.score = 1.06;
+            this.score = 1.08;
 
             const undockedEnemies = gameMap.enemyShips.filter(e => e.isUndocked());
             const distanceToNextUndocked = Simulation.nearestEntity(undockedEnemies, this.enemy).dist;
@@ -437,7 +437,7 @@ class AttackGoal {
 
             const distanceToMe = Simulation.nearestEntity(myPlanets, this.enemy).dist;
             if (distanceToMe > 60) {
-                this.score += 0.03;
+                this.score += 0.04;
             }
         }
 
