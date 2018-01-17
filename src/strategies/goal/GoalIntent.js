@@ -1,3 +1,7 @@
+const log = require('../../hlt/Log');
+
+
+
 class GoalIntent {
     constructor(ship, goal, score) {
         this.ship = ship;
@@ -6,9 +10,7 @@ class GoalIntent {
     }
 
     toString() {
-        const roundedScore = (Math.round(this.score * 10) / 10);
-
-        return roundedScore + "#" + this.goal;
+        return this.score.toFixed(2) + "#" + this.goal;
     }
 }
 

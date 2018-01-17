@@ -84,7 +84,7 @@ function calcShipRequests(gameMap, goals) {
 function magicLoop(gameMap, shipIntents) {
     // do magic stuff to assign ships to goals based on effectiveness
 
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 25; i++) {
         const grantedShips = shipIntents
             .map((shipIntents) => {
                 shipIntents.intents.sort((a, b) => b.score - a.score);
@@ -101,7 +101,7 @@ function magicLoop(gameMap, shipIntents) {
                     .map(shipIntent => shipIntent.intents[0])
                     .sort((a, b) => b.score - a.score)
                     .slice(max)
-                    .forEach(goalIntent => goalIntent.score -= .01);
+                    .forEach(goalIntent => goalIntent.score -= .02);
             }
         });
     }
