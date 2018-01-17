@@ -47,6 +47,8 @@ class Simulation {
             .filter(p => p.currentProduction + this.productionWithShips(p.dockedShips.length) >= 72)
             .map(planet => {
                 const location = planet.calcShipSpawnPoint();
+                if (location === null)
+                    return null;
                 const params = {
                     x: location.x,
                     y: location.y,
@@ -54,7 +56,8 @@ class Simulation {
                     health: constants.BASE_SHIP_HEALTH,
                 };
                 return new Ship(gameMap, planet.ownerId, params);
-            });
+            })
+            .filter(ship => ship !== null);
     }
 
     static intersectWallsWithCircle(gameMap, circle) {
