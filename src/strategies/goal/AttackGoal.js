@@ -68,39 +68,72 @@ class AttackGoal {
         const lessShips = ourBunch.length < enemies.length;
         const lessHealth = ourHealth <= enemyHealth && ourBunch.length === enemies.length;
         if (lessShips || lessHealth) {
-            const theirClosestShip = Simulation.nearestEntity(enemies, closestShip).entity;
-
-            // only running away when close
-            if (Geometry.distance(closestShip, theirClosestShip) < constants.MAX_SPEED + constants.NEXT_TICK_ATTACK_RADIUS) {
-                const vector = Geometry.normalizeVector({
-                    x: closestShip.x - theirClosestShip.x,
-                    y: closestShip.y - theirClosestShip.y,
+            const groups = [];
+            ships.forEach(s => {
+                let groupFound = false;
+                groups.forEach(g => {
+                    if (!groupFound) {
+                        if (Geometry.distance2(g.avgPos, s) < GROUPING_RADIUS ** 2) {
+                            g.avgPos = {
+                                x: (g.avgPos.x * g.ships.length + s.x) / (g.ships.length + 1),
+                                y: (g.avgPos.y * g.ships.length + s.y) / (g.ships.length + 1)
+                            };
+                            g.ships.push(s);
+                            groupFound = true;
+                        }
+                    }
                 });
 
-                const escapePadding = gameMap.numberOfPlayers === 2 ? 1 : 3;
-                const escapeDistance = constants.NEXT_TICK_ATTACK_RADIUS + constants.SHIP_RADIUS + escapePadding;
-                const retreatPoint = {
-                    x: theirClosestShip.x + vector.x * escapeDistance,
-                    y: theirClosestShip.y + vector.y * escapeDistance,
-                };
+                if (!groupFound) {
+                    groups.push({
+                        avgPos: s,
+                        ships: [s],
+                    });
+                }
+            });
 
-                log.log('running away with ships: ' + ships);
-
-                const enemiesOnWay = gameMap.enemyShips
-                    .filter(e => e.isUndocked())
-                    .filter(e => Geometry.distance(e, this.enemy) > 13)
-                    .map(e => ({x: e.x, y: e.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
-                let obstacles = gameMap.enemyShips
-                    .filter(ship => ship.isUndocked())
-                    .concat(Simulation.newEnemiesNextTurn(gameMap))
-                    .map(enemy => ({x: enemy.x, y: enemy.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}))
-                    .concat(enemiesOnWay);
-
-                if(ships.length !== 1)
-                    obstacles = [];
-
-                return ships.map(ship => AttackGoal.navigateRetreat(gameMap, ship, retreatPoint, obstacles));
+            if(groups.length > 1) {
+                log.log("the group length is: " + groups.length);
             }
+
+            return groups.flatMap(g => {
+                const theirClosestShip = Simulation.nearestEntity(enemies, g.avgPos).entity;
+                const ourClosestShip = Simulation.nearestEntity(g.ships, theirClosestShip).entity;
+
+                // only running away when close
+                if (Geometry.distance(ourClosestShip, theirClosestShip) < constants.MAX_SPEED + constants.NEXT_TICK_ATTACK_RADIUS) {
+                    const vector = Geometry.normalizeVector({
+                        x: ourClosestShip.x - theirClosestShip.x,
+                        y: ourClosestShip.y - theirClosestShip.y,
+                    });
+
+                    const escapePadding = gameMap.numberOfPlayers === 2 ? 1 : 3;
+                    const escapeDistance = constants.NEXT_TICK_ATTACK_RADIUS + constants.SHIP_RADIUS + escapePadding;
+                    const retreatPoint = {
+                        x: theirClosestShip.x + vector.x * escapeDistance,
+                        y: theirClosestShip.y + vector.y * escapeDistance,
+                    };
+
+                    log.log('running away with ships: ' + g.ships);
+
+                    let obstacles = [];
+                    if (g.ships.length === 1) {
+                        const enemiesOnWay = gameMap.enemyShips
+                            .filter(e => e.isUndocked())
+                            .filter(e => Geometry.distance(e, this.enemy) > 13)
+                            .map(e => ({x: e.x, y: e.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}));
+                        obstacles = gameMap.enemyShips
+                            .filter(ship => ship.isUndocked())
+                            .concat(Simulation.newEnemiesNextTurn(gameMap))
+                            .map(enemy => ({x: enemy.x, y: enemy.y, radius: constants.NEXT_TICK_ATTACK_RADIUS}))
+                            .concat(enemiesOnWay);
+                    }
+
+                    return g.ships.map(ship => AttackGoal.navigateRetreat(gameMap, ship, retreatPoint, obstacles));
+                } else {
+                    return AttackGoal.navigateAttack(gameMap, g.ships, this.enemy)
+                }
+            });
         }
 
         return AttackGoal.navigateAttack(gameMap, ships, this.enemy);
