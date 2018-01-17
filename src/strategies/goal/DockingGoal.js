@@ -75,7 +75,36 @@ class DockingGoal {
     }
 
     static navigatePlanet(gameMap, ship, planet) {
-        const to = Geometry.reduceEnd(ship, planet, planet.radius + constants.SHIP_RADIUS + 0.05);
+        let to;
+        if(Geometry.distance(ship, planet) < planet.radius + constants.DOCK_RADIUS + constants.MAX_SPEED + ship.radius) {
+            const spawnPoint = planet.calcShipSpawnPoint();
+            const spawnAngle = Geometry.angleInDegree(ship, spawnPoint);
+
+            const planetCircle = {
+                x: planet.x,
+                y: planet.y,
+                radius: planet.radius + constants.DOCK_RADIUS,
+            };
+
+            const shipCircle = {
+                x: ship.x,
+                y: ship.y,
+                radius: ship.radius + constants.MAX_SPEED,
+            };
+
+            const intersections = Geometry.intersectCircles(planetCircle, shipCircle);
+            const angles = intersections.map(i => Geometry.angleInDegree(ship, i));
+
+            if(Geometry.angleInRange(spawnAngle, angles[0], angles[1])) {
+                to = spawnPoint;
+            } else if(Math.abs(Geometry.angleBetween(angles[0], spawnAngle)) < Math.abs(Geometry.angleBetween(angles[1], spawnAngle))) {
+                to = intersections[0];
+            } else {
+                to = intersections[1];
+            }
+        } else {
+            to = Geometry.reduceEnd(ship, planet, planet.radius + constants.SHIP_RADIUS + 0.05);
+        }
         const {speed, angle} = findPath(gameMap, ship, to);
         return new ActionThrust(ship, speed, angle);
     }
