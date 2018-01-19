@@ -35,7 +35,7 @@ class DockingGoal {
     }
 
     getShipCommands(gameMap, ships) {
-        const reachedBeforeUndockRadius = this.planet.radius + constants.DOCK_RADIUS + constants.DOCK_TURNS * 2 * constants.MAX_SPEED;
+        const reachedBeforeUndockRadius = this.planet.radius + constants.DOCK_RADIUS + (constants.DOCK_TURNS * 2 + 1) * constants.MAX_SPEED;
         const myShipsInRange = gameMap.myShips
             .filter(s => s.isUndocked())
             .filter(s => Geometry.distance(s, this.planet) < reachedBeforeUndockRadius)
@@ -49,6 +49,8 @@ class DockingGoal {
             .filter(s => s.isUndocked())
             .filter(s => Geometry.distance(s, this.planet) < reachedBeforeUndockRadius)
             .length;
+
+        // don't dock ships if an enemy could reach them before they're undocked again
         const dockableShipCount = Math.max(0, myShipsInRange * 1.3 + producedShipsInRange * 0.8 - opponentShipsInRange);
 
         const movement = ships
@@ -77,6 +79,7 @@ class DockingGoal {
     static navigatePlanet(gameMap, ship, planet) {
         let to;
         if(Geometry.distance(ship, planet) < planet.radius + constants.DOCK_RADIUS + constants.MAX_SPEED + ship.radius) {
+            // move to the planets spawn point in the last turn before being able to dock
             const spawnPoint = planet.calcShipSpawnPoint();
             const spawnAngle = Geometry.angleInDegree(ship, spawnPoint);
 
@@ -137,10 +140,13 @@ class DockingGoal {
             this.score += distance / (gameMap.maxDistance / 2) * 0.1 - 0.05;
 
             const nearestOpponent = Simulation.nearestEntity(gameMap.enemyShips, this.planet).dist;
-            if (nearestOpponent < this.planet.radius + 22)
+            if (nearestOpponent < this.planet.radius + 22) {
                 this.score -= 0.03;
-            else
+                if (nearestOpponent < this.planet.radius + 11)
+                    this.score -= 0.01;
+            } else {
                 this.score += 0.025;
+            }
 
             // docking larger planets only lessens travel times so only value it a bit
             this.score += radiusScore * 0.002 - 0.001;
@@ -151,7 +157,7 @@ class DockingGoal {
             /*
             prefer emptier planets
             this is useful for sending a few ship to planets that are a bit farther away
-            this way the planet sits on its own till it's full and then returns ships many turns later
+            we are basically planting a 'seed' on the planet and get the reward later in the game
              */
             this.score += this.planet.freeDockingSpots / 6 * 0.1 - 0.05;
         } else if (gameMap.numberOfPlayers === 2) {
