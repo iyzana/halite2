@@ -141,9 +141,9 @@ class DockingGoal {
 
             const nearestOpponent = Simulation.nearestEntity(gameMap.enemyShips, this.planet).dist;
             if (nearestOpponent < this.planet.radius + 22) {
-                this.score -= 0.03;
+                this.score -= 0.025;
                 if (nearestOpponent < this.planet.radius + 11)
-                    this.score -= 0.01;
+                    this.score -= 0.015;
             } else {
                 this.score += 0.025;
             }

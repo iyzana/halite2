@@ -25,7 +25,7 @@ class DefenseGoal {
             log.log("enemy " + id + " enemyPlanets: " + planets);
         });
 
-        const reachedBeforeUndockRadius = this.planet.radius + constants.DOCK_RADIUS + (constants.DOCK_TURNS * 2 + 1) * constants.MAX_SPEED;
+        const reachedBeforeUndockRadius = this.planet.radius + constants.DOCK_RADIUS + (constants.DOCK_TURNS + 1) * constants.MAX_SPEED;
         const myShipsInRange = gameMap.myShips
             .filter(s => s.isUndocked())
             .filter(s => Geometry.distance(s, this.planet) < reachedBeforeUndockRadius)
