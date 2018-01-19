@@ -431,12 +431,14 @@ class AttackGoal {
         } else if (this.enemy.isUndocking()) {
             this.score = 1.04;
         } else {
-            this.score = 1.08;
+            this.score = 1.07;
 
             const undockedEnemies = gameMap.enemyShips.filter(e => e.isUndocked());
             const distanceToNextUndocked = Simulation.nearestEntity(undockedEnemies, this.enemy).dist;
             if (distanceToNextUndocked > 10) {
                 this.score += 0.03;
+            } else {
+                this.score -= 0.01;
             }
 
             const distanceToMe = Simulation.nearestEntity(myPlanets, this.enemy).dist;
