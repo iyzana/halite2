@@ -75,7 +75,7 @@ function identifyGoals(gameMap) {
         .groupBy(s => s.ownerId)
         .map(t => t.values.length)
         .reduce((acc, s) => acc > s ? acc : s, 0);
-    if (gameMap.populatedPlanetsPct > 0.55 && largestEnemy / 2 > gameMap.myShips && gameMap.numberOfPlayers === 4) {
+    if (gameMap.populatedPlanetsPct > 0.55 && largestEnemy / 2 > gameMap.myShips.length && gameMap.numberOfPlayers === 4) {
         goals.push(new DesertionGoal(gameMap));
     }
 
