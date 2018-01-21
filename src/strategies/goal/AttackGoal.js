@@ -434,7 +434,7 @@ class AttackGoal {
             this.score = 1.07;
 
             const undockedEnemies = gameMap.enemyShips.filter(e => e.isUndocked());
-            const numDefenders = undockedEnemies.filter(e => Geometry.distance(this.enemy, e) < 10);
+            const numDefenders = undockedEnemies.filter(e => Geometry.distance(this.enemy, e) < 10).length;
             if (numDefenders === 0) {
                 this.score += 0.03;
             } else {
