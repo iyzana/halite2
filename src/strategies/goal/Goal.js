@@ -4,6 +4,7 @@ const AttackGoal = require('./AttackGoal');
 const DefenseGoal = require('./DefenseGoal');
 const KamikazeGoal = require('./KamikazeGoal');
 const HarassmentGoal = require('./HarassmentGoal');
+const DesertionGoal = require('./DesertionGoal');
 const ShipIntents = require('./ShipIntents');
 const GoalIntent = require('./GoalIntent');
 const Geometry = require("../../hlt/Geometry");
@@ -68,6 +69,14 @@ function identifyGoals(gameMap) {
         const harassmentGoal = new HarassmentGoal(gameMap, harassPlayerId);
 
         goals.push(harassmentGoal);
+    }
+
+    const largestEnemy = gameMap.enemyShips
+        .groupBy(s => s.ownerId)
+        .map(t => t.values.length)
+        .reduce((acc, s) => acc > s ? acc : s, 0);
+    if (gameMap.populatedPlanetsPct > 0.55 && largestEnemy / 2 > gameMap.myShips && gameMap.numberOfPlayers === 4) {
+        goals.push(new DesertionGoal(gameMap));
     }
 
     return goals;

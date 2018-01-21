@@ -24,7 +24,7 @@ class AttackGoal {
             .map(ship => new GoalIntent(ship, this, 1 - Geometry.distance(ship, this.enemy) / gameMap.maxDistance));
     }
 
-    effectivenessPerShip(gameMap, shipSet) {
+    effectivenessPerShip(gameMap) {
         const enemies = gameMap.enemyShips
             .filter(enemy => Geometry.distance(this.enemy, enemy) < GROUPING_RADIUS);
 

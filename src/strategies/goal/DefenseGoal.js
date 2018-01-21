@@ -39,7 +39,7 @@ class DefenseGoal {
             .filter(s => Geometry.distance(s, this.planet) < reachedBeforeUndockRadius);
         const smallestGroup = actualOpponentShipsInRange.groupBy(s => s.ownerId)
             .map(t => t.values.length)
-            .reduce((acc, c) => acc < c ? acc : c, 0);
+            .reduce((acc, c) => acc < c ? acc : c, Infinity);
         const opponentShipsInRange = actualOpponentShipsInRange.length - smallestGroup;
 
         let attackingEnemies;
