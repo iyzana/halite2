@@ -36,11 +36,10 @@ class DefenseGoal {
             .map(p => Simulation.shipsInTurns(p, (reachedBeforeUndockRadius - Geometry.distance(p, this.planet) / 2) / constants.MAX_SPEED));
         const actualOpponentShipsInRange = gameMap.enemyShips
             .filter(s => s.isUndocked())
-            .filter(s => Geometry.distance(s, this.planet) < reachedBeforeUndockRadius)
-            .reduce((acc, c) => acc + c, 0);
+            .filter(s => Geometry.distance(s, this.planet) < reachedBeforeUndockRadius);
         const smallestGroup = actualOpponentShipsInRange.groupBy(s => s.ownerId)
             .map(t => t.values.length)
-            .reduce((acc, c) => acc < c ? acc : c);
+            .reduce((acc, c) => acc < c ? acc : c, 0);
         const opponentShipsInRange = actualOpponentShipsInRange.length - smallestGroup;
 
         let attackingEnemies;
