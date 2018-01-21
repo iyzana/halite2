@@ -427,16 +427,16 @@ class AttackGoal {
 
         // todo: try scoring by distance from enemy to closest of our planets
         if (this.enemy.isUndocked()) {
-            this.score = 1.02;
+            this.score = 1.01;
         } else if (this.enemy.isUndocking()) {
             this.score = 1.04;
         } else {
-            this.score = 1.06;
+            this.score = 1.07;
 
             const undockedEnemies = gameMap.enemyShips.filter(e => e.isUndocked());
             const numDefenders = undockedEnemies.filter(e => Geometry.distance(this.enemy, e) < 10).length;
             if (numDefenders === 0) {
-                this.score += 0.04;
+                this.score += 0.03;
             } else {
                 this.score -= numDefenders * 0.01;
             }
