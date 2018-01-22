@@ -24,7 +24,7 @@ class AttackGoal {
             .map(ship => new GoalIntent(ship, this, 1 - Geometry.distance(ship, this.enemy) / gameMap.maxDistance));
     }
 
-    effectivenessPerShip(gameMap) {
+    effectivenessPerShip(gameMap, shipSet) {
         const enemies = gameMap.enemyShips
             .filter(enemy => Geometry.distance(this.enemy, enemy) < GROUPING_RADIUS);
 
@@ -427,23 +427,21 @@ class AttackGoal {
 
         // todo: try scoring by distance from enemy to closest of our planets
         if (this.enemy.isUndocked()) {
-            this.score = 1.01;
+            this.score = 1.02;
         } else if (this.enemy.isUndocking()) {
             this.score = 1.04;
         } else {
-            this.score = 1.07;
+            this.score = 1.08;
 
             const undockedEnemies = gameMap.enemyShips.filter(e => e.isUndocked());
-            const numDefenders = undockedEnemies.filter(e => Geometry.distance(this.enemy, e) < 10).length;
-            if (numDefenders === 0) {
+            const distanceToNextUndocked = Simulation.nearestEntity(undockedEnemies, this.enemy).dist;
+            if (distanceToNextUndocked > 10) {
                 this.score += 0.03;
-            } else {
-                this.score -= numDefenders * 0.01;
             }
 
             const distanceToMe = Simulation.nearestEntity(myPlanets, this.enemy).dist;
             if (distanceToMe > 60) {
-                this.score += 0.03;
+                this.score += 0.04;
             }
         }
 

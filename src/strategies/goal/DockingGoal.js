@@ -137,7 +137,7 @@ class DockingGoal {
             this.score += 0.01;
 
             // docking further out is good on 4 player maps
-            // this.score += distance / (gameMap.maxDistance / 2) * 0.1 - 0.05;
+            this.score += distance / (gameMap.maxDistance / 2) * 0.1 - 0.05;
 
             const nearestOpponent = Simulation.nearestEntity(gameMap.enemyShips, this.planet).dist;
             if (nearestOpponent < this.planet.radius + 22) {
