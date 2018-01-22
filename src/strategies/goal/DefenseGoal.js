@@ -41,7 +41,7 @@ class DefenseGoal {
             .length;
 
         let attackingEnemies;
-        if (myShipsInRange * 1.8 + producedShipsInRange <= opponentShipsInRange) {
+        if (myShipsInRange * 1.8 + producedShipsInRange < opponentShipsInRange) {
             attackingEnemies = gameMap.enemyShips
                 .filter(enemy => enemy.isUndocked())
                 .filter(enemy => Geometry.distance(enemy, this.planet) < reachedBeforeUndockRadius)

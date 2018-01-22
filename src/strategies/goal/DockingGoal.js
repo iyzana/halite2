@@ -78,32 +78,37 @@ class DockingGoal {
 
     static navigatePlanet(gameMap, ship, planet) {
         let to;
-        if(Geometry.distance(ship, planet) < planet.radius + constants.DOCK_RADIUS + constants.MAX_SPEED + ship.radius) {
+        if (Geometry.distance(ship, planet) < planet.radius + constants.DOCK_RADIUS + constants.MAX_SPEED + ship.radius) {
             // move to the planets spawn point in the last turn before being able to dock
             const spawnPoint = planet.calcShipSpawnPoint();
-            const spawnAngle = Geometry.angleInDegree(ship, spawnPoint);
 
-            const planetCircle = {
-                x: planet.x,
-                y: planet.y,
-                radius: planet.radius + constants.DOCK_RADIUS,
-            };
+            if (spawnPoint !== null) {
+                const spawnAngle = Geometry.angleInDegree(ship, spawnPoint);
 
-            const shipCircle = {
-                x: ship.x,
-                y: ship.y,
-                radius: ship.radius + constants.MAX_SPEED,
-            };
+                const planetCircle = {
+                    x: planet.x,
+                    y: planet.y,
+                    radius: planet.radius + constants.DOCK_RADIUS,
+                };
 
-            const intersections = Geometry.intersectCircles(planetCircle, shipCircle);
-            const angles = intersections.map(i => Geometry.angleInDegree(ship, i));
+                const shipCircle = {
+                    x: ship.x,
+                    y: ship.y,
+                    radius: ship.radius + constants.MAX_SPEED,
+                };
 
-            if(Geometry.angleInRange(spawnAngle, angles[0], angles[1])) {
-                to = spawnPoint;
-            } else if(Math.abs(Geometry.angleBetween(angles[0], spawnAngle)) < Math.abs(Geometry.angleBetween(angles[1], spawnAngle))) {
-                to = intersections[0];
+                const intersections = Geometry.intersectCircles(planetCircle, shipCircle);
+                const angles = intersections.map(i => Geometry.angleInDegree(ship, i));
+
+                if (Geometry.angleInRange(spawnAngle, angles[0], angles[1])) {
+                    to = spawnPoint;
+                } else if (Math.abs(Geometry.angleBetween(angles[0], spawnAngle)) < Math.abs(Geometry.angleBetween(angles[1], spawnAngle))) {
+                    to = intersections[0];
+                } else {
+                    to = intersections[1];
+                }
             } else {
-                to = intersections[1];
+                to = Geometry.reduceEnd(ship, planet, planet.radius + constants.SHIP_RADIUS + 0.05);
             }
         } else {
             to = Geometry.reduceEnd(ship, planet, planet.radius + constants.SHIP_RADIUS + 0.05);
