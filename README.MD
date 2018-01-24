@@ -128,9 +128,87 @@ Collision avoidance respects the following cases:
 
 # version history
 
-## v3
+only versions with structural, major or effective changes are listed
+
+### v3 (rating 22.72, rank 75)
 
 This is the first revision in version control and I don't really know what happened before that.
-It's weighs planets by dockingSpots and distance.
+It weighs planets by dockingSpots and distance and decides for each ship if it should attack or dock based on distances.
+It docks planets until they are full.
 
-## more to come (i'll have to go through the commit history)
+### v5 (rating 27.27, rank 34)
+
+we use LineNavigation now which already is quite similar to the current version.
+
+### v10 (rating 31.52, rank 160)
+
+started to implement collision avoidance
+
+### v14 (rating 41.62, rank 41)
+
+this bot now implements the current architecture of assigning ships to goals that are scored as explained in general structure  
+simulate how long the planet still needs until it is fully docked  
+
+### v17 (rating 45.7, rank 18)
+
+starting to implement defensive behaviour  
+find collisions using collision_time function from engine
+
+### v19 (rating 47.22, rank 12)
+
+start not taking fights that will be lost
+
+### v20 (rating 48.27, rank 12)
+
+avoi collisions with walls
+
+### v22 (rating 50.01, rank 8)
+
+stop following single enemies with tons of our ships
+
+### v23 (rating 51.63, rank 7)
+
+improve the code that determines when to attack or retreat
+
+### v24 (rating 51.28, rank 9)
+
+harrass on 2 player maps
+
+### v32 (rating 51.72, rank 8)
+
+don't keep a distance when attacking undocked enemies
+
+### v39 (rating 51.94, rank 13)
+
+merge defense code
+
+### v42 (rating 52.08, rank 16)
+
+don't retreat when we have more health (or more ships as before)
+
+### v52 (rating 52.61, rank 16)
+
+merge the code for exact grouping before attacking
+
+### v56 (rating 53.86, rank 15)
+
+prefer to attack ships that are docked and undefended
+
+## v57 (rating 54.1, rank 13)
+
+detect multiple attack goals for the same enemies and merge that  
+**this is the version playing in the finals**
+only a few later bugfixes have been backported
+
+## v59 (rating 54.85, rank 12)
+
+try docking near the planet spawn point
+
+## v61 (rating 55.6, rank 11)
+
+make defense less overprotective, make bot less agressive in general
+
+## v71 (rating ?, rank ?)
+
+the version that is playing in the final  
+as mentioned in v57 this version has only bugfixes backported
