@@ -20,38 +20,41 @@ At first a straight line to the target location is drawn.
 Every obstacle that intersects that line is then found.
 The farthest of these obstacles is selected and will be used for the rest of the method call.
 The two intersection points of the tangents on that obstacle are then computed.
-Of these intersection points the on closest to the target is selected.
+Of these intersection points the one closest to the target is selected.
 That point is then recursively passed to the navigation function.
-The recursion depth limit is set to 6 and if one branch did not yield a solution the process is repeated with the other intersection point
+The recursion depth limit is set to 6 and if one branch did not yield a solution the process is repeated with the other intersection point.
+If no path is found at all speed and angle zero are returned.
 
 ### enemy avoidance
 
-It is possible to pass a custom list of obstacles to the navigation.
+It is possible to pass a custom list of additional obstacles to the navigation.
 This is frequently used to avoid undocked enemies when we want to attack docked ones or similar cases.
 The radius of these enemy-obstacles is set to the radius they can reach with their attacks next turn which is
 `max_speed + weapon_range + 2 * ship_radius = 13`.
-By passing these obstacles a real path is computed that circumvents these enemies we don't want to attack, as they are just seen as normal obstacles present on the map.
+By passing these obstacles, a vector is computed, that circumvents these enemies, as they are just seen as normal obstacles present on the map.
 
 It is then also possible that a ship currently is inside one or multiple of these enemy radii.
 In that case we intersect our ships movement radius with each enemy radius and compute the angle interval for a safe escape.
 We then find an overlap in the computed intervals and use that as the escape angle.
 If the intervals have no overlap we weight them by distance to enemy they come from and average their midpoints.
-If we are completely inside an enemy radius and can't escape it we fall back to retreating in a straight line from it. 
+If we are completely inside an enemy radius and can't escape it we fall back to retreating in a straight line from it.
+
+Each sentence that contained the word angle from the last paragraph was complex to implement as it was increasingly harder to handle the 360 to 0 degrees special case in the angular calculations.
 
 ## defense
 
 At first agressive enemies are determined.
 An enemy is agreesive if:
-- its distance to the planet is smaller than the naxt tick attack radius
+- its distance to the planet is smaller than the next tick attack radius
 - its movement vector stretched to 50 intersects with the planets dock radius + 3
     - and there are no other planets in the way
     - and the planet is roughly the closest one the enemy would consider an enemy planet
 
 The smallest distance between any attacker and docked ship of that planet is then found, this is considered the attacked ship.
 Based on the distance between the attacked ship and the closest agressor the turns till arrival are calculated.
-We the simulate how many ships the planet will produce before that.
+We then simulate how many ships the planet will produce before that.
 If enough ships will be produced or are already undocking no further action is required.
-Otherwise ships from the surrounding are drawn in to defend.
+Otherwise ships from the surroundings are drawn in to defend.
 If there are no ships nearby we will start undocking as many ships as there are agressors.
 This way no special early game rush detection is required as this process covers that.
 The defense position is simply as close to the attacked ship as possible.
