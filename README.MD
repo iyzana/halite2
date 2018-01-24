@@ -194,21 +194,21 @@ merge the code for exact grouping before attacking
 
 prefer to attack ships that are docked and undefended
 
-## v57 (rating 54.1, rank 13)
+### v57 (rating 54.1, rank 13)
 
 detect multiple attack goals for the same enemies and merge that  
 **this is the version playing in the finals**
 only a few later bugfixes have been backported
 
-## v59 (rating 54.85, rank 12)
+### v59 (rating 54.85, rank 12)
 
 try docking near the planet spawn point
 
-## v61 (rating 55.6, rank 11)
+### v61 (rating 55.6, rank 11)
 
 make defense less overprotective, make bot less agressive in general
 
-## v71 (rating ?, rank ?)
+### v71 (rating ?, rank ?)
 
 the version that is playing in the final  
-as mentioned in v57 this version has only bugfixes backported
+this is the same as v57 only a few bugfixes have been backported
