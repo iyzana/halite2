@@ -31,7 +31,8 @@ It is possible to pass a custom list of additional obstacles to the navigation.
 This is frequently used to avoid undocked enemies when we want to attack docked ones or similar cases.
 The radius of these enemy-obstacles is set to the radius they can reach with their attacks next turn which is
 `max_speed + weapon_range + 2 * ship_radius = 13`.
-By passing these obstacles, a vector is computed, that circumvents these enemies, as they are just seen as normal obstacles present on the map.
+By passing these obstacles, a vector is computed, that circumvents these enemies, as they are just seen as normal obstacles present on the map.  
+This behaviour can be seen in turn 16 to 21 in [this replay](https://halite.io/play/?game_id=9124903&replay_class=1&replay_name=replay-20180124-174928%2B0000--1222418557-288-192-1516816167).
 
 It is then also possible that a ship currently is inside one or multiple of these enemy radii.
 In that case we intersect our ships movement radius with each enemy radius and compute the angle interval for a safe escape.
@@ -160,7 +161,7 @@ start not taking fights that will be lost
 
 ### v20 (rating 48.27, rank 12)
 
-avoi collisions with walls
+avoid collisions with walls
 
 ### v22 (rating 50.01, rank 8)
 
