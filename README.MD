@@ -209,7 +209,8 @@ try docking near the planet spawn point
 
 make defense less overprotective, make bot less agressive in general
 
-### v71 (rating ?, rank ?)
+### v71 (rating 47.13, rank 13)
 
 the version that is playing in the final  
 this is the same as v57 only a few bugfixes have been backported
+all ratings have been reset for the finals, so the value isn't comparable to previous ones
